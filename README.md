@@ -24,6 +24,20 @@ Alternatively, you can run the notebook from the command line using `jupyter nbc
 jupyter nbconvert --to notebook --execute RLcode --output output.ipynb
 ```
 
+### Command line training
+You can also train the models directly with `train.py`. Hyperparameters can be
+supplied via command line flags or a YAML configuration file:
+
+```bash
+python train.py --grid_size 8 --num_episodes 200
+```
+
+or
+
+```bash
+python train.py --config config.yaml
+```
+
 ## Components
 * **PPO** – The main reinforcement learning algorithm used to learn policies from environment interaction.
 * **ICM** – Adds intrinsic rewards based on prediction error of the agent's dynamics model to promote exploring unseen states.
