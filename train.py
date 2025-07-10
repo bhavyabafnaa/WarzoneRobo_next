@@ -4,7 +4,13 @@ import yaml
 import torch
 import torch.optim as optim
 
-from src.env import GridWorldICM, export_benchmark_maps, visualize_paths_on_benchmark_maps, plot_model_performance
+from src.env import (
+    GridWorldICM,
+    export_benchmark_maps,
+    visualize_paths_on_benchmark_maps,
+    plot_model_performance,
+)
+from src.visualization import plot_training_curves, plot_heatmap_with_path
 from src.icm import ICMModule
 from src.rnd import RNDModule
 from src.planner import SymbolicPlanner
@@ -65,7 +71,7 @@ def main():
     # PPO only
     ppo_policy = PPOPolicy(input_dim, action_dim)
     opt_ppo = optim.Adam(ppo_policy.parameters(), lr=3e-4)
-    rewards_ppo_only, *_ = train_agent(
+    rewards_ppo_only, _, _, _, paths_ppo_only, _, success_ppo_only, _ = train_agent(
         env,
         ppo_policy,
         icm,
@@ -78,11 +84,12 @@ def main():
         planner_weights=planner_weights,
     )
     save_model(ppo_policy, os.path.join("checkpoints", "ppo_only.pt"))
+    plot_training_curves(rewards_ppo_only, None, success_ppo_only)
 
     # PPO + ICM
     ppo_icm_policy = PPOPolicy(input_dim, action_dim)
     opt_icm_policy = optim.Adam(ppo_icm_policy.parameters(), lr=3e-4)
-    rewards_ppo_icm, *_ = train_agent(
+    rewards_ppo_icm, intrinsic_icm, _, _, paths_icm, _, success_icm, _ = train_agent(
         env,
         ppo_icm_policy,
         icm,
@@ -95,11 +102,12 @@ def main():
         planner_weights=planner_weights,
     )
     save_model(ppo_icm_policy, os.path.join("checkpoints", "ppo_icm.pt"), icm=icm)
+    plot_training_curves(rewards_ppo_icm, intrinsic_icm, success_icm)
 
     # PPO + ICM + Planner
     ppo_icm_planner_policy = PPOPolicy(input_dim, action_dim)
     opt_plan_policy = optim.Adam(ppo_icm_planner_policy.parameters(), lr=3e-4)
-    rewards_ppo_icm_plan, *_ = train_agent(
+    rewards_ppo_icm_plan, intrinsic_plan, _, _, paths_plan, _, success_plan, _ = train_agent(
         env,
         ppo_icm_planner_policy,
         icm,
@@ -116,11 +124,14 @@ def main():
         os.path.join("checkpoints", "ppo_icm_planner.pt"),
         icm=icm,
     )
+    plot_training_curves(rewards_ppo_icm_plan, intrinsic_plan, success_plan)
+    if paths_plan:
+        plot_heatmap_with_path(env, paths_plan[-1])
 
     # Count-based exploration
     ppo_count_policy = PPOPolicy(input_dim, action_dim)
     opt_count_policy = optim.Adam(ppo_count_policy.parameters(), lr=3e-4)
-    rewards_ppo_count, *_ = train_agent(
+    rewards_ppo_count, _, _, _, paths_count, _, success_count, _ = train_agent(
         env,
         ppo_count_policy,
         icm,
@@ -133,13 +144,14 @@ def main():
         planner_weights=planner_weights,
     )
     save_model(ppo_count_policy, os.path.join("checkpoints", "ppo_count.pt"))
+    plot_training_curves(rewards_ppo_count, None, success_count)
 
     # RND exploration
     ppo_rnd_policy = PPOPolicy(input_dim, action_dim)
     opt_rnd_policy = optim.Adam(ppo_rnd_policy.parameters(), lr=3e-4)
     rnd = RNDModule(input_dim)
     opt_rnd = optim.Adam(rnd.predictor.parameters(), lr=1e-3)
-    rewards_ppo_rnd, *_ = train_agent(
+    rewards_ppo_rnd, _, _, _, paths_rnd, _, success_rnd, _ = train_agent(
         env,
         ppo_rnd_policy,
         icm,
@@ -157,6 +169,7 @@ def main():
         os.path.join("checkpoints", "ppo_rnd.pt"),
         rnd=rnd,
     )
+    plot_training_curves(rewards_ppo_rnd, None, success_rnd)
 
     # Load a saved model for evaluation on benchmark maps
     eval_policy, _, _ = load_model(
