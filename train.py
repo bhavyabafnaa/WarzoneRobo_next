@@ -82,11 +82,12 @@ def main():
         revisit_penalty=args.revisit_penalty,
     )
 
-    export_benchmark_maps(env, num_maps=10, folder="maps/")
-    export_benchmark_maps(env, num_maps=5, folder="test_maps/")
+    export_benchmark_maps(env, num_train=15, num_test=5)
 
     policy_demo = PPOPolicy(input_dim, action_dim)
-    visualize_paths_on_benchmark_maps(env, policy_demo, map_folder="maps/", num_maps=9)
+    visualize_paths_on_benchmark_maps(
+        env, policy_demo, map_folder="train_maps/", num_maps=9
+    )
 
     planner_weights = {
         "cost_weight": args.cost_weight,
@@ -225,7 +226,7 @@ def main():
         os.path.join("checkpoints", "ppo_icm_planner.pt"),
         icm_class=ICMModule,
     )
-    visualize_paths_on_benchmark_maps(env, eval_policy, map_folder="maps/", num_maps=3)
+    visualize_paths_on_benchmark_maps(env, eval_policy, map_folder="test_maps/", num_maps=3)
 
     models = [
         ppo_policy,
@@ -252,7 +253,7 @@ def main():
         success_rnd,
     ]
     for name, model, successes in zip(model_names, models, success_lists):
-        mean_r, std_r = evaluate_on_benchmarks(env, model, map_folder="maps/", num_maps=10)
+        mean_r, std_r = evaluate_on_benchmarks(env, model, map_folder="test_maps/", num_maps=5)
         success_rate = float(sum(successes)) / len(successes) if successes else 0.0
         results.append(
             {
@@ -267,7 +268,7 @@ def main():
     os.makedirs("results", exist_ok=True)
     generate_results_table(df, os.path.join("results", "benchmark_results.html"))
 
-    plot_model_performance(models, model_names, env)
+    plot_model_performance(models, model_names, env, map_folder="test_maps/", num_maps=5)
 
 
 if __name__ == "__main__":

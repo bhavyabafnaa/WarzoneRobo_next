@@ -279,11 +279,38 @@ def visualize_paths_on_benchmark_maps(
     plt.show()
 
 
-def export_benchmark_maps(env: GridWorldICM, num_maps: int = 10, folder: str = "maps/"):
-    os.makedirs(folder, exist_ok=True)
-    for i in range(num_maps):
+def export_benchmark_maps(
+    env: GridWorldICM,
+    num_train: int = 15,
+    num_test: int = 5,
+    train_folder: str = "train_maps/",
+    test_folder: str = "test_maps/",
+) -> None:
+    """Generate benchmark maps for training and testing.
+
+    Parameters
+    ----------
+    env : GridWorldICM
+        Environment instance used to generate the maps.
+    num_train : int, optional
+        Number of training maps to create. Defaults to ``15``.
+    num_test : int, optional
+        Number of test maps to create. Defaults to ``5``.
+    train_folder : str, optional
+        Directory where training maps are saved.
+    test_folder : str, optional
+        Directory where test maps are saved.
+    """
+
+    os.makedirs(train_folder, exist_ok=True)
+    for i in range(num_train):
         env.reset(seed=i)
-        env.save_map(f"{folder}/map_{i:02d}.npz")
+        env.save_map(os.path.join(train_folder, f"map_{i:02d}.npz"))
+
+    os.makedirs(test_folder, exist_ok=True)
+    for i in range(num_test):
+        env.reset(seed=num_train + i)
+        env.save_map(os.path.join(test_folder, f"map_{i:02d}.npz"))
 
 
 def evaluate_on_benchmarks(
