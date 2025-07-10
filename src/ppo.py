@@ -41,11 +41,23 @@ def compute_gae(rewards: List[float], values: List[float], gamma: float = 0.99, 
     return advantages
 
 
-def train_agent(env, policy: PPOPolicy, icm: ICMModule, planner: SymbolicPlanner,
-                optimizer_policy: torch.optim.Optimizer, optimizer_icm: torch.optim.Optimizer,
-                use_icm=True, use_planner=True, num_episodes: int = 500, beta: float = 0.1,
-                gamma: float = 0.99, planner_weights: Optional[dict] = None,
-                rnd: Optional[RNDModule] = None):
+def train_agent(
+    env,
+    policy: PPOPolicy,
+    icm: ICMModule,
+    planner: SymbolicPlanner,
+    optimizer_policy: torch.optim.Optimizer,
+    optimizer_icm: torch.optim.Optimizer,
+    use_icm=True,
+    use_planner=True,
+    num_episodes: int = 500,
+    beta: float = 0.1,
+    gamma: float = 0.99,
+    planner_weights: Optional[dict] = None,
+    rnd: Optional[RNDModule] = None,
+    seed: int = 42,
+    add_noise: bool = False,
+):
 
     reward_log = []
     paths_log = []
@@ -59,7 +71,7 @@ def train_agent(env, policy: PPOPolicy, icm: ICMModule, planner: SymbolicPlanner
 
     for episode in range(num_episodes):
         benchmark_map = f"maps/map_00.npz"
-        obs, _ = env.reset(seed=42, load_map_path=benchmark_map)
+        obs, _ = env.reset(seed=seed, load_map_path=benchmark_map, add_noise=add_noise)
 
         done = False
         total_ext_reward = 0

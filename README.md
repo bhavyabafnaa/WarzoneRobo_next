@@ -39,7 +39,15 @@ python train.py --config config.yaml
 ```
 
 A default `config.yaml` is included at the repository root. Duplicate and modify
-this file to experiment with different training settings.
+this file to experiment with different training settings. Additional environment
+options can also be specified in the YAML:
+
+```yaml
+grid_size: 8
+num_episodes: 200
+dynamic_risk: true      # enemies increase risk over time
+add_noise: true         # perturb loaded maps on reset
+```
 
 ### Generating benchmark tables
 After training, `train.py` evaluates each agent on the exported benchmark maps.
@@ -68,6 +76,14 @@ Train all models from a configuration file:
 python train.py --config config.yaml
 ```
 Checkpoints are saved under `checkpoints/`, episode videos under `videos/`, and result tables under `results/`. Hyperparameters such as planner weights (`cost_weight`, `risk_weight`, etc.) can be edited in the YAML file or passed as command-line flags.
+
+To repeat an experiment with multiple random seeds you can loop over the `--seed` argument:
+
+```bash
+for s in 0 1 2 3 4; do
+    python train.py --config config.yaml --seed $s
+done
+```
 
 ## Running Tests
 Execute the unit tests with:

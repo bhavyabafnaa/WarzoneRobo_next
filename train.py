@@ -26,6 +26,19 @@ from src.utils import save_model, load_model
 
 
 def parse_args():
+    """Parse command line arguments.
+
+    Any key found in a YAML file provided via ``--config`` will be mapped to an
+    argument attribute. This allows specifying additional environment options
+    such as ``dynamic_risk`` or ``add_noise`` purely in YAML:
+
+    .. code-block:: yaml
+
+       grid_size: 8
+       dynamic_risk: true
+       add_noise: false
+    """
+
     parser = argparse.ArgumentParser(description="Train or evaluate PPO agents")
     parser.add_argument("--config", type=str, help="Path to YAML config file", default=None)
     parser.add_argument("--grid_size", type=int, default=12)
@@ -34,6 +47,9 @@ def parse_args():
     parser.add_argument("--risk_weight", type=float, default=3.0)
     parser.add_argument("--goal_weight", type=float, default=0.5)
     parser.add_argument("--revisit_penalty", type=float, default=1.0)
+    parser.add_argument("--dynamic_risk", action="store_true", help="Enable dynamic risk in env")
+    parser.add_argument("--add_noise", action="store_true", help="Add noise when resetting maps")
+    parser.add_argument("--seed", type=int, default=42, help="Random seed")
     return parser.parse_args()
 
 
@@ -49,7 +65,11 @@ def main():
     input_dim = 5 * grid_size * grid_size
     action_dim = 4
 
-    env = GridWorldICM(grid_size=grid_size)
+    env = GridWorldICM(
+        grid_size=grid_size,
+        dynamic_risk=args.dynamic_risk,
+        seed=args.seed,
+    )
     icm = ICMModule(input_dim, action_dim)
     planner = SymbolicPlanner(
         env.cost_map,
@@ -89,6 +109,8 @@ def main():
         use_planner=False,
         num_episodes=args.num_episodes,
         planner_weights=planner_weights,
+        seed=args.seed,
+        add_noise=args.add_noise,
     )
     save_model(ppo_policy, os.path.join("checkpoints", "ppo_only.pt"))
     plot_training_curves(rewards_ppo_only, None, success_ppo_only)
@@ -108,6 +130,8 @@ def main():
         use_planner=False,
         num_episodes=args.num_episodes,
         planner_weights=planner_weights,
+        seed=args.seed,
+        add_noise=args.add_noise,
     )
     save_model(ppo_icm_policy, os.path.join("checkpoints", "ppo_icm.pt"), icm=icm)
     plot_training_curves(rewards_ppo_icm, intrinsic_icm, success_icm)
@@ -127,6 +151,8 @@ def main():
         use_planner=True,
         num_episodes=args.num_episodes,
         planner_weights=planner_weights,
+        seed=args.seed,
+        add_noise=args.add_noise,
     )
     save_model(
         ppo_icm_planner_policy,
@@ -156,6 +182,8 @@ def main():
         use_planner=False,
         num_episodes=args.num_episodes,
         planner_weights=planner_weights,
+        seed=args.seed,
+        add_noise=args.add_noise,
     )
     save_model(ppo_count_policy, os.path.join("checkpoints", "ppo_count.pt"))
     plot_training_curves(rewards_ppo_count, None, success_count)
@@ -178,6 +206,8 @@ def main():
         rnd=rnd,
         num_episodes=args.num_episodes,
         planner_weights=planner_weights,
+        seed=args.seed,
+        add_noise=args.add_noise,
     )
     save_model(
         ppo_rnd_policy,

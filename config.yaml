@@ -4,3 +4,6 @@ cost_weight: 2.0
 risk_weight: 3.0
 goal_weight: 0.5
 revisit_penalty: 1.0
+dynamic_risk: false
+add_noise: false
+seed: 42
