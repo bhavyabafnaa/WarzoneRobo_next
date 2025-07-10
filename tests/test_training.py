@@ -10,8 +10,8 @@ from src.ppo import PPOPolicy, train_agent
 
 def test_short_training_loop(tmp_path):
     env = GridWorldICM(grid_size=4, max_steps=10)
-    os.makedirs("maps", exist_ok=True)
-    env.save_map("maps/map_00.npz")
+    os.makedirs("train_maps", exist_ok=True)
+    env.save_map("train_maps/map_00.npz")
 
     input_dim = 5 * env.grid_size * env.grid_size
     action_dim = 4

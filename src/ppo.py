@@ -58,7 +58,7 @@ def train_agent(env, policy: PPOPolicy, icm: ICMModule, planner: SymbolicPlanner
     planner_usage_rate = []
 
     for episode in range(num_episodes):
-        benchmark_map = f"maps/map_00.npz"
+        benchmark_map = f"train_maps/map_00.npz"
         obs, _ = env.reset(seed=42, load_map_path=benchmark_map)
 
         done = False
