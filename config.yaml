@@ -1,0 +1,6 @@
+grid_size: 8
+num_episodes: 200
+cost_weight: 2.0
+risk_weight: 3.0
+goal_weight: 0.5
+revisit_penalty: 1.0

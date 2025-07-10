@@ -38,6 +38,9 @@ or
 python train.py --config config.yaml
 ```
 
+A default `config.yaml` is included at the repository root. Duplicate and modify
+this file to experiment with different training settings.
+
 ### Generating benchmark tables
 After training, `train.py` evaluates each agent on the exported benchmark maps.
 The metrics are saved to `results/benchmark_results.csv` and, when the output
