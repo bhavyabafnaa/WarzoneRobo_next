@@ -55,3 +55,20 @@ python train.py --num_episodes 200
 * **Planner** – A symbolic planner computes heuristic paths that the agent can follow, helping integrate classical planning with learned policies.
 
 The notebook experiments with different combinations of these components to evaluate their effect on success rate and exploration.
+
+## Environment features
+The grid world includes an optional *dynamic risk* mode where risk levels grow as enemies move. Benchmark maps can be exported with `export_benchmark_maps` and loaded later for evaluation. The environment's `render()` method returns RGB frames so that `render_episode_video` can produce GIFs of agent behavior.
+
+## Running Experiments
+Train all models from a configuration file:
+```bash
+python train.py --config config.yaml
+```
+Checkpoints are saved under `checkpoints/`, episode videos under `videos/`, and result tables under `results/`. Hyperparameters such as planner weights (`cost_weight`, `risk_weight`, etc.) can be edited in the YAML file or passed as command-line flags.
+
+## Running Tests
+Execute the unit tests with:
+```bash
+pytest -q
+```
+The full suite runs in well under a minute on a CPU.
