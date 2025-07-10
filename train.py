@@ -3,14 +3,20 @@ import argparse
 import yaml
 import torch
 import torch.optim as optim
+import pandas as pd
 
 from src.env import (
     GridWorldICM,
     export_benchmark_maps,
     visualize_paths_on_benchmark_maps,
     plot_model_performance,
+    evaluate_on_benchmarks,
 )
-from src.visualization import plot_training_curves, plot_heatmap_with_path
+from src.visualization import (
+    plot_training_curves,
+    plot_heatmap_with_path,
+    generate_results_table,
+)
 from src.icm import ICMModule
 from src.rnd import RNDModule
 from src.planner import SymbolicPlanner
@@ -181,8 +187,46 @@ def main():
     )
     visualize_paths_on_benchmark_maps(env, eval_policy, map_folder="maps/", num_maps=3)
 
-    models = [ppo_policy, ppo_icm_policy, ppo_icm_planner_policy, ppo_count_policy, ppo_rnd_policy]
-    model_names = ['PPO Only', 'PPO + ICM', 'PPO + ICM + Planner', 'PPO + count', 'PPO + RND']
+    models = [
+        ppo_policy,
+        ppo_icm_policy,
+        ppo_icm_planner_policy,
+        ppo_count_policy,
+        ppo_rnd_policy,
+    ]
+    model_names = [
+        "PPO Only",
+        "PPO + ICM",
+        "PPO + ICM + Planner",
+        "PPO + count",
+        "PPO + RND",
+    ]
+
+    # Collect benchmark metrics for each variant
+    results = []
+    success_lists = [
+        success_ppo_only,
+        success_icm,
+        success_plan,
+        success_count,
+        success_rnd,
+    ]
+    for name, model, successes in zip(model_names, models, success_lists):
+        mean_r, std_r = evaluate_on_benchmarks(env, model, map_folder="maps/", num_maps=10)
+        success_rate = float(sum(successes)) / len(successes) if successes else 0.0
+        results.append(
+            {
+                "Model": name,
+                "Mean Reward": mean_r,
+                "Reward Std": std_r,
+                "Training Success Rate": success_rate,
+            }
+        )
+
+    df = pd.DataFrame(results)
+    os.makedirs("results", exist_ok=True)
+    generate_results_table(df, os.path.join("results", "benchmark_results.html"))
+
     plot_model_performance(models, model_names, env)
 
 

@@ -38,6 +38,16 @@ or
 python train.py --config config.yaml
 ```
 
+### Generating benchmark tables
+After training, `train.py` evaluates each agent on the exported benchmark maps.
+The metrics are saved to `results/benchmark_results.csv` and, when the output
+path ends with `.html` or `.tex`, an additional formatted table is produced.
+
+```bash
+python train.py --num_episodes 200
+# CSV and HTML tables are written to the `results/` folder
+```
+
 ## Components
 * **PPO** – The main reinforcement learning algorithm used to learn policies from environment interaction.
 * **ICM** – Adds intrinsic rewards based on prediction error of the agent's dynamics model to promote exploring unseen states.

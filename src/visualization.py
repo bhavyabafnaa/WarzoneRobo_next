@@ -1,4 +1,6 @@
+import os
 import numpy as np
+import pandas as pd
 import matplotlib.pyplot as plt
 import seaborn as sns
 
@@ -49,3 +51,26 @@ def plot_heatmap_with_path(env, path):
 
     plt.tight_layout()
     plt.show()
+
+
+def generate_results_table(df: pd.DataFrame, output_path: str) -> None:
+    """Save benchmark results and optionally render an HTML or LaTeX table.
+
+    A CSV file with the same base name as ``output_path`` is always written. If
+    ``output_path`` ends with ``.html`` or ``.tex`` the table will also be
+    exported in that format.
+    """
+
+    base, ext = os.path.splitext(output_path)
+    os.makedirs(os.path.dirname(base) or ".", exist_ok=True)
+
+    csv_path = base + ".csv"
+    df.to_csv(csv_path, index=False)
+
+    if ext.lower() in {".html", ".htm"}:
+        styled = df.style.hide_index().format(precision=2)
+        styled.to_html(output_path)
+    elif ext.lower() in {".tex", ".latex"}:
+        latex = df.to_latex(index=False, float_format="%.2f")
+        with open(output_path, "w") as f:
+            f.write(latex)
