@@ -5,3 +5,4 @@ gym
 PyYAML
 seaborn
 pandas
+imageio

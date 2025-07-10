@@ -16,6 +16,7 @@ from src.visualization import (
     plot_training_curves,
     plot_heatmap_with_path,
     generate_results_table,
+    render_episode_video,
 )
 from src.icm import ICMModule
 from src.rnd import RNDModule
@@ -91,6 +92,7 @@ def main():
     )
     save_model(ppo_policy, os.path.join("checkpoints", "ppo_only.pt"))
     plot_training_curves(rewards_ppo_only, None, success_ppo_only)
+    render_episode_video(env, ppo_policy, os.path.join("videos", "ppo_only.gif"))
 
     # PPO + ICM
     ppo_icm_policy = PPOPolicy(input_dim, action_dim)
@@ -109,6 +111,7 @@ def main():
     )
     save_model(ppo_icm_policy, os.path.join("checkpoints", "ppo_icm.pt"), icm=icm)
     plot_training_curves(rewards_ppo_icm, intrinsic_icm, success_icm)
+    render_episode_video(env, ppo_icm_policy, os.path.join("videos", "ppo_icm.gif"))
 
     # PPO + ICM + Planner
     ppo_icm_planner_policy = PPOPolicy(input_dim, action_dim)
@@ -131,6 +134,11 @@ def main():
         icm=icm,
     )
     plot_training_curves(rewards_ppo_icm_plan, intrinsic_plan, success_plan)
+    render_episode_video(
+        env,
+        ppo_icm_planner_policy,
+        os.path.join("videos", "ppo_icm_planner.gif"),
+    )
     if paths_plan:
         plot_heatmap_with_path(env, paths_plan[-1])
 
@@ -151,6 +159,7 @@ def main():
     )
     save_model(ppo_count_policy, os.path.join("checkpoints", "ppo_count.pt"))
     plot_training_curves(rewards_ppo_count, None, success_count)
+    render_episode_video(env, ppo_count_policy, os.path.join("videos", "ppo_count.gif"))
 
     # RND exploration
     ppo_rnd_policy = PPOPolicy(input_dim, action_dim)
@@ -176,6 +185,7 @@ def main():
         rnd=rnd,
     )
     plot_training_curves(rewards_ppo_rnd, None, success_rnd)
+    render_episode_video(env, ppo_rnd_policy, os.path.join("videos", "ppo_rnd.gif"))
 
     # Load a saved model for evaluation on benchmark maps
     eval_policy, _, _ = load_model(

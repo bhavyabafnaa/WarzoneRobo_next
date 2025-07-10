@@ -3,6 +3,8 @@ import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 import seaborn as sns
+import torch
+import imageio
 
 
 def plot_training_curves(reward_log, intrinsic_log, success_flags):
@@ -74,3 +76,20 @@ def generate_results_table(df: pd.DataFrame, output_path: str) -> None:
         latex = df.to_latex(index=False, float_format="%.2f")
         with open(output_path, "w") as f:
             f.write(latex)
+
+
+def render_episode_video(env, policy, output_path: str, max_steps: int = 100, seed: int | None = None) -> None:
+    """Run one episode and save a GIF of the agent interacting with the env."""
+    obs, _ = env.reset(seed=seed)
+    frames = [env.render()]
+    done = False
+    step = 0
+    while not done and step < max_steps:
+        state_tensor = torch.tensor(obs, dtype=torch.float32).unsqueeze(0)
+        action, _, _ = policy.act(state_tensor)
+        obs, _, done, _, _ = env.step(action)
+        frames.append(env.render())
+        step += 1
+
+    os.makedirs(os.path.dirname(output_path) or ".", exist_ok=True)
+    imageio.mimsave(output_path, frames, fps=5)
