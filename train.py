@@ -42,7 +42,12 @@ def parse_args():
     """
 
     parser = argparse.ArgumentParser(description="Train or evaluate PPO agents")
-    parser.add_argument("--config", type=str, help="Path to YAML config file", default=None)
+    parser.add_argument(
+        "--config",
+        type=str,
+        help="Path to YAML config file",
+        default="configs/default.yaml",
+    )
     parser.add_argument("--grid_size", type=int, default=12)
     parser.add_argument("--num_episodes", type=int, default=500)
     parser.add_argument("--cost_weight", type=float, default=2.0)
