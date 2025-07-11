@@ -1,3 +1,4 @@
+import os
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -72,8 +73,12 @@ def train_agent(
     success_flags = []
     planner_usage_rate = []
 
+    benchmark_map = "maps/map_00.npz"
+    os.makedirs(os.path.dirname(benchmark_map), exist_ok=True)
+    env.reset(seed=seed)
+    env.save_map(benchmark_map)
+
     for episode in range(num_episodes):
-        benchmark_map = f"maps/map_00.npz"
         obs, _ = env.reset(seed=seed, load_map_path=benchmark_map, add_noise=add_noise)
 
         done = False

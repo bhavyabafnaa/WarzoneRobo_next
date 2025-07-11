@@ -28,17 +28,17 @@ from src.utils import save_model
 
 
 def parse_args():
-    """Parse command line arguments.
+    """Parse command line arguments with optional YAML config defaults.
 
-    Any key found in a YAML file provided via ``--config`` will be mapped to an
-    argument attribute. This allows specifying additional environment options
-    such as ``dynamic_risk`` or ``add_noise`` purely in YAML:
+    The ``--config`` file is parsed first and any keys inside will set the
+    parser defaults. Command line flags always take precedence, allowing quick
+    overrides without editing the YAML.
 
-    .. code-block:: yaml
+    Example YAML snippet::
 
-       grid_size: 8
-       dynamic_risk: true
-       add_noise: false
+        grid_size: 8
+        dynamic_risk: true
+        add_noise: false
     """
 
     parser = argparse.ArgumentParser(description="Train or evaluate PPO agents")
@@ -96,16 +96,23 @@ def parse_args():
         default=None,
         help="Directory to save training plots",
     )
+
+    # Parse once to read the config file path and load defaults from YAML. We
+    # intentionally parse without removing any of the original command line
+    # arguments so they can still override the config on the second pass.
+    config_args, _ = parser.parse_known_args()
+    if config_args.config and os.path.exists(config_args.config):
+        with open(config_args.config, "r") as f:
+            cfg = yaml.safe_load(f) or {}
+        parser.set_defaults(**cfg)
+
+    # Final parse with config defaults applied; command line flags take
+    # precedence over YAML settings.
     return parser.parse_args()
 
 
 def main():
     args = parse_args()
-    if args.config:
-        with open(args.config, "r") as f:
-            cfg = yaml.safe_load(f)
-        for k, v in cfg.items():
-            setattr(args, k, v)
 
     if args.plot_dir:
         os.makedirs(args.plot_dir, exist_ok=True)
