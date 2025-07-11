@@ -196,12 +196,16 @@ def main():
         args.disable_planner = setting["planner"]
 
         metrics = {
-            "PPO Only": {"rewards": [], "success": []},
-            "PPO + ICM": {"rewards": [], "success": []},
-            "PPO + ICM + Planner": {"rewards": [], "success": []},
-            "PPO + count": {"rewards": [], "success": []},
-            "PPO + RND": {"rewards": [], "success": []},
-            "PPO + PC": {"rewards": [], "success": []},
+            "PPO Only": {"rewards": [], "success": [], "planner_pct": []},
+            "PPO + ICM": {"rewards": [], "success": [], "planner_pct": []},
+            "PPO + ICM + Planner": {
+                "rewards": [],
+                "success": [],
+                "planner_pct": [],
+            },
+            "PPO + count": {"rewards": [], "success": [], "planner_pct": []},
+            "PPO + RND": {"rewards": [], "success": [], "planner_pct": []},
+            "PPO + PC": {"rewards": [], "success": [], "planner_pct": []},
         }
         bench = {
             "PPO Only": [],
@@ -238,7 +242,7 @@ def main():
         # PPO only
         ppo_policy = PPOPolicy(input_dim, action_dim)
         opt_ppo = optim.Adam(ppo_policy.parameters(), lr=3e-4)
-        rewards_ppo_only, _, _, _, paths_ppo_only, _, success_ppo_only, _ = train_agent(
+        rewards_ppo_only, _, _, _, paths_ppo_only, _, success_ppo_only, planner_rate_ppo_only = train_agent(
             env,
             ppo_policy,
             icm,
@@ -257,6 +261,7 @@ def main():
         metrics["PPO Only"]["success"].append(
             float(sum(success_ppo_only)) / len(success_ppo_only) if success_ppo_only else 0.0
         )
+        metrics["PPO Only"]["planner_pct"].append(float(np.mean(planner_rate_ppo_only)))
         save_model(ppo_policy, os.path.join("checkpoints", f"ppo_only_{run_seed}.pt"))
         curve_logs["PPO Only"]["rewards"].append(rewards_ppo_only)
         curve_logs["PPO Only"]["success"].append(success_ppo_only)
@@ -268,7 +273,7 @@ def main():
         if not args.disable_icm:
             ppo_icm_policy = PPOPolicy(input_dim, action_dim)
             opt_icm_policy = optim.Adam(ppo_icm_policy.parameters(), lr=3e-4)
-            rewards_ppo_icm, intrinsic_icm, _, _, paths_icm, _, success_icm, _ = train_agent(
+            rewards_ppo_icm, intrinsic_icm, _, _, paths_icm, _, success_icm, planner_rate_icm = train_agent(
             env,
             ppo_icm_policy,
             icm,
@@ -287,6 +292,7 @@ def main():
             metrics["PPO + ICM"]["success"].append(
                 float(sum(success_icm)) / len(success_icm) if success_icm else 0.0
             )
+            metrics["PPO + ICM"]["planner_pct"].append(float(np.mean(planner_rate_icm)))
             save_model(ppo_icm_policy, os.path.join("checkpoints", f"ppo_icm_{run_seed}.pt"), icm=icm)
             curve_logs["PPO + ICM"]["rewards"].append(rewards_ppo_icm)
             curve_logs["PPO + ICM"]["intrinsic"].append(intrinsic_icm)
@@ -299,7 +305,7 @@ def main():
         ppo_pc_policy = PPOPolicy(input_dim, action_dim)
         opt_pc_policy = optim.Adam(ppo_pc_policy.parameters(), lr=3e-4)
         pseudo = PseudoCountExploration()
-        rewards_pc, _, _, _, paths_pc, _, success_pc, _ = train_agent(
+        rewards_pc, _, _, _, paths_pc, _, success_pc, planner_rate_pc = train_agent(
             env,
             ppo_pc_policy,
             icm,
@@ -319,6 +325,7 @@ def main():
         metrics["PPO + PC"]["success"].append(
             float(sum(success_pc)) / len(success_pc) if success_pc else 0.0
         )
+        metrics["PPO + PC"]["planner_pct"].append(float(np.mean(planner_rate_pc)))
         save_model(ppo_pc_policy, os.path.join("checkpoints", f"ppo_pc_{run_seed}.pt"))
         curve_logs["PPO + PC"]["rewards"].append(rewards_pc)
         curve_logs["PPO + PC"]["success"].append(success_pc)
@@ -330,7 +337,7 @@ def main():
         if not args.disable_icm and not args.disable_planner:
             ppo_icm_planner_policy = PPOPolicy(input_dim, action_dim)
             opt_plan_policy = optim.Adam(ppo_icm_planner_policy.parameters(), lr=3e-4)
-            rewards_ppo_icm_plan, intrinsic_plan, _, _, paths_plan, _, success_plan, _ = train_agent(
+            rewards_ppo_icm_plan, intrinsic_plan, _, _, paths_plan, _, success_plan, planner_rate_plan = train_agent(
                 env,
                 ppo_icm_planner_policy,
                 icm,
@@ -349,6 +356,7 @@ def main():
             metrics["PPO + ICM + Planner"]["success"].append(
                 float(sum(success_plan)) / len(success_plan) if success_plan else 0.0
             )
+            metrics["PPO + ICM + Planner"]["planner_pct"].append(float(np.mean(planner_rate_plan)))
             save_model(
                 ppo_icm_planner_policy,
                 os.path.join("checkpoints", f"ppo_icm_planner_{run_seed}.pt"),
@@ -376,7 +384,7 @@ def main():
         # Count-based exploration
         ppo_count_policy = PPOPolicy(input_dim, action_dim)
         opt_count_policy = optim.Adam(ppo_count_policy.parameters(), lr=3e-4)
-        rewards_ppo_count, _, _, _, paths_count, _, success_count, _ = train_agent(
+        rewards_ppo_count, _, _, _, paths_count, _, success_count, planner_rate_count = train_agent(
             env,
             ppo_count_policy,
             icm,
@@ -395,6 +403,7 @@ def main():
         metrics["PPO + count"]["success"].append(
             float(sum(success_count)) / len(success_count) if success_count else 0.0
         )
+        metrics["PPO + count"]["planner_pct"].append(float(np.mean(planner_rate_count)))
         save_model(ppo_count_policy, os.path.join("checkpoints", f"ppo_count_{run_seed}.pt"))
         curve_logs["PPO + count"]["rewards"].append(rewards_ppo_count)
         curve_logs["PPO + count"]["success"].append(success_count)
@@ -408,7 +417,7 @@ def main():
             opt_rnd_policy = optim.Adam(ppo_rnd_policy.parameters(), lr=3e-4)
             rnd = RNDModule(input_dim)
             opt_rnd = optim.Adam(rnd.predictor.parameters(), lr=1e-3)
-            rewards_ppo_rnd, _, _, _, paths_rnd, _, success_rnd, _ = train_agent(
+            rewards_ppo_rnd, _, _, _, paths_rnd, _, success_rnd, planner_rate_rnd = train_agent(
                 env,
                 ppo_rnd_policy,
                 icm,
@@ -428,6 +437,7 @@ def main():
             metrics["PPO + RND"]["success"].append(
                 float(sum(success_rnd)) / len(success_rnd) if success_rnd else 0.0
             )
+            metrics["PPO + RND"]["planner_pct"].append(float(np.mean(planner_rate_rnd)))
             save_model(
                 ppo_rnd_policy,
                 os.path.join("checkpoints", f"ppo_rnd_{run_seed}.pt"),
@@ -478,6 +488,7 @@ def main():
                     "Train Reward Std": float(np.std(data["rewards"])),
                     "Success Mean": float(np.mean(data["success"])),
                     "Success Std": float(np.std(data["success"])),
+                    "Planner Usage %": float(np.mean(data["planner_pct"])) * 100,
                     "Reward p-value": p_reward,
                     "Success p-value": p_success,
                 }
