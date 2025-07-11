@@ -35,12 +35,12 @@ python train.py --grid_size 8 --num_episodes 200
 or
 
 ```bash
-python train.py --config config.yaml
+python train.py --config configs/default.yaml
 ```
 
-A default `config.yaml` is included at the repository root. Duplicate and modify
-this file to experiment with different training settings. Additional environment
-options can also be specified in the YAML:
+The repository includes `configs/default.yaml` as a starting configuration.
+Duplicate and modify this file to experiment with different training settings.
+Additional environment options can also be specified in the YAML:
 
 ```yaml
 grid_size: 8
@@ -76,7 +76,7 @@ The grid world includes an optional *dynamic risk* mode where risk levels grow a
 ## Running Experiments
 Train all models from a configuration file:
 ```bash
-python train.py --config config.yaml
+python train.py --config configs/default.yaml
 ```
 Checkpoints are saved under `checkpoints/`, episode videos under `videos/`, and result tables under `results/`. Hyperparameters such as planner weights (`cost_weight`, `risk_weight`, etc.) can be edited in the YAML file or passed as command-line flags.
 
@@ -84,7 +84,7 @@ To repeat an experiment with multiple random seeds you can loop over the `--seed
 
 ```bash
 for s in 0 1 2 3 4; do
-    python train.py --config config.yaml --seed $s
+    python train.py --config configs/default.yaml --seed $s
 done
 ```
 
