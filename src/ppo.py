@@ -7,6 +7,7 @@ from typing import List, Optional
 from .planner import SymbolicPlanner
 from .icm import ICMModule
 from .rnd import RNDModule
+from .pseudocount import PseudoCountExploration
 
 
 class PPOPolicy(nn.Module):
@@ -55,6 +56,7 @@ def train_agent(
     gamma: float = 0.99,
     planner_weights: Optional[dict] = None,
     rnd: Optional[RNDModule] = None,
+    pseudo: Optional[PseudoCountExploration] = None,
     seed: int = 42,
     add_noise: bool = False,
 ):
@@ -130,6 +132,10 @@ def train_agent(
                 optimizer_icm.zero_grad()
                 loss.backward()
                 optimizer_icm.step()
+            elif use_icm == "pseudo" and pseudo is not None:
+                p_bonus = pseudo.bonus(state_tensor.numpy())
+                total_reward = ext_reward + beta * p_bonus
+                curiosity = torch.tensor([p_bonus])
             elif use_icm is True:
                 curiosity, f_loss, i_loss = icm(state_tensor, next_tensor, action_tensor)
                 total_reward = ext_reward + beta * curiosity.item()
