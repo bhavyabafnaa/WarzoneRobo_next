@@ -59,6 +59,9 @@ python train.py --num_episodes 200
 # CSV and HTML tables are written to the `results/` folder
 ```
 
+Paired t-tests are performed against the PPO baseline for each variant.
+Differences are considered significant when `p < 0.05`.
+
 ## Components
 * **PPO** – The main reinforcement learning algorithm used to learn policies from environment interaction.
 * **ICM** – Adds intrinsic rewards based on prediction error of the agent's dynamics model to promote exploring unseen states.

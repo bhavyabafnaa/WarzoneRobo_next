@@ -5,6 +5,7 @@ import torch
 import torch.optim as optim
 import pandas as pd
 import numpy as np
+from scipy.stats import ttest_rel
 
 from src.env import (
     GridWorldICM,
@@ -366,8 +367,19 @@ def main():
             bench["PPO + RND"].append(mean_b)
 
         # Aggregate metrics across seeds for this setting
+        baseline_rewards = np.array(metrics["PPO Only"]["rewards"])
+        baseline_success = np.array(metrics["PPO Only"]["success"])
+
         results = []
         for name, data in metrics.items():
+            # paired t-tests relative to PPO Only baseline
+            if name == "PPO Only" or len(baseline_rewards) != len(data["rewards"]):
+                p_reward = np.nan
+                p_success = np.nan
+            else:
+                p_reward = ttest_rel(baseline_rewards, data["rewards"]).pvalue
+                p_success = ttest_rel(baseline_success, data["success"]).pvalue
+
             results.append(
                 {
                     "Setting": setting["name"],
@@ -376,6 +388,8 @@ def main():
                     "Train Reward Std": float(np.std(data["rewards"])),
                     "Success Mean": float(np.mean(data["success"])),
                     "Success Std": float(np.std(data["success"])),
+                    "Reward p-value": p_reward,
+                    "Success p-value": p_success,
                 }
             )
 

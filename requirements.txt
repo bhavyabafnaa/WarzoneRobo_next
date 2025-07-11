@@ -6,3 +6,4 @@ PyYAML
 seaborn
 pandas
 imageio
+scipy
