@@ -1,4 +1,7 @@
 import os
+from typing import Sequence
+
+import numpy as np
 import torch
 
 def save_model(policy, path, icm=None, rnd=None):
@@ -26,4 +29,19 @@ def load_model(policy_class, input_dim, action_dim, path, icm_class=None, rnd_cl
         rnd = rnd_class(input_dim)
         rnd.load_state_dict(checkpoint["rnd"])
     return policy, icm, rnd
+
+
+def count_intrinsic_spikes(values: Sequence[float], threshold_factor: float = 1.5) -> int:
+    """Return the number of intrinsic reward spikes.
+
+    A spike is any value exceeding ``threshold_factor`` times the mean of
+    the sequence. Empty sequences yield zero spikes.
+    """
+
+    if not values:
+        return 0
+
+    arr = np.asarray(list(values), dtype=float)
+    threshold = threshold_factor * arr.mean()
+    return int(np.sum(arr > threshold))
 
