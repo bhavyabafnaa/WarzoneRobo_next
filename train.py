@@ -492,17 +492,21 @@ def main():
         all_bench.extend(bench_results)
 
 
-df_train = pd.DataFrame(all_results)
-os.makedirs("results", exist_ok=True)
-generate_results_table(df_train, os.path.join("results", "training_results.html"))
-if all_bench:
-    df_bench = pd.DataFrame(all_bench)
-    generate_results_table(df_bench, os.path.join("results", "benchmark_results.html"))
+    df_train = pd.DataFrame(all_results)
+    os.makedirs("results", exist_ok=True)
+    generate_results_table(
+        df_train, os.path.join("results", "training_results.html")
+    )
+    if all_bench:
+        df_bench = pd.DataFrame(all_bench)
+        generate_results_table(
+            df_bench, os.path.join("results", "benchmark_results.html")
+        )
 
-if args.log_backend == "tensorboard" and logger is not None:
-    logger.close()
-elif args.log_backend == "wandb" and logger is not None:
-    logger.finish()
+    if args.log_backend == "tensorboard" and logger is not None:
+        logger.close()
+    elif args.log_backend == "wandb" and logger is not None:
+        logger.finish()
 
 
 if __name__ == "__main__":
