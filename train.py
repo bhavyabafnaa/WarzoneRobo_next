@@ -185,6 +185,15 @@ def main():
             "PPO + PC": [],
         }
 
+        curve_logs = {
+            "PPO Only": {"rewards": [], "intrinsic": [], "success": []},
+            "PPO + ICM": {"rewards": [], "intrinsic": [], "success": []},
+            "PPO + ICM + Planner": {"rewards": [], "intrinsic": [], "success": []},
+            "PPO + count": {"rewards": [], "intrinsic": [], "success": []},
+            "PPO + RND": {"rewards": [], "intrinsic": [], "success": []},
+            "PPO + PC": {"rewards": [], "intrinsic": [], "success": []},
+        }
+
         for run_seed in seeds:
             env.reset(seed=run_seed)
             icm = ICMModule(input_dim, action_dim)
@@ -222,7 +231,8 @@ def main():
             float(sum(success_ppo_only)) / len(success_ppo_only) if success_ppo_only else 0.0
         )
         save_model(ppo_policy, os.path.join("checkpoints", f"ppo_only_{run_seed}.pt"))
-        plot_training_curves(rewards_ppo_only, None, success_ppo_only)
+        curve_logs["PPO Only"]["rewards"].append(rewards_ppo_only)
+        curve_logs["PPO Only"]["success"].append(success_ppo_only)
         render_episode_video(env, ppo_policy, os.path.join("videos", f"ppo_only_{run_seed}.gif"))
         mean_b, std_b = evaluate_on_benchmarks(env, ppo_policy, "test_maps", 5)
         bench["PPO Only"].append(mean_b)
@@ -251,7 +261,9 @@ def main():
                 float(sum(success_icm)) / len(success_icm) if success_icm else 0.0
             )
             save_model(ppo_icm_policy, os.path.join("checkpoints", f"ppo_icm_{run_seed}.pt"), icm=icm)
-            plot_training_curves(rewards_ppo_icm, intrinsic_icm, success_icm)
+            curve_logs["PPO + ICM"]["rewards"].append(rewards_ppo_icm)
+            curve_logs["PPO + ICM"]["intrinsic"].append(intrinsic_icm)
+            curve_logs["PPO + ICM"]["success"].append(success_icm)
             render_episode_video(env, ppo_icm_policy, os.path.join("videos", f"ppo_icm_{run_seed}.gif"))
             mean_b, std_b = evaluate_on_benchmarks(env, ppo_icm_policy, "test_maps", 5)
             bench["PPO + ICM"].append(mean_b)
@@ -281,7 +293,8 @@ def main():
             float(sum(success_pc)) / len(success_pc) if success_pc else 0.0
         )
         save_model(ppo_pc_policy, os.path.join("checkpoints", f"ppo_pc_{run_seed}.pt"))
-        plot_training_curves(rewards_pc, None, success_pc)
+        curve_logs["PPO + PC"]["rewards"].append(rewards_pc)
+        curve_logs["PPO + PC"]["success"].append(success_pc)
         render_episode_video(env, ppo_pc_policy, os.path.join("videos", f"ppo_pc_{run_seed}.gif"))
         mean_b, std_b = evaluate_on_benchmarks(env, ppo_pc_policy, "test_maps", 5)
         bench["PPO + PC"].append(mean_b)
@@ -314,7 +327,9 @@ def main():
                 os.path.join("checkpoints", f"ppo_icm_planner_{run_seed}.pt"),
                 icm=icm,
             )
-            plot_training_curves(rewards_ppo_icm_plan, intrinsic_plan, success_plan)
+            curve_logs["PPO + ICM + Planner"]["rewards"].append(rewards_ppo_icm_plan)
+            curve_logs["PPO + ICM + Planner"]["intrinsic"].append(intrinsic_plan)
+            curve_logs["PPO + ICM + Planner"]["success"].append(success_plan)
             render_episode_video(
                 env,
                 ppo_icm_planner_policy,
@@ -348,7 +363,8 @@ def main():
             float(sum(success_count)) / len(success_count) if success_count else 0.0
         )
         save_model(ppo_count_policy, os.path.join("checkpoints", f"ppo_count_{run_seed}.pt"))
-        plot_training_curves(rewards_ppo_count, None, success_count)
+        curve_logs["PPO + count"]["rewards"].append(rewards_ppo_count)
+        curve_logs["PPO + count"]["success"].append(success_count)
         render_episode_video(env, ppo_count_policy, os.path.join("videos", f"ppo_count_{run_seed}.gif"))
         mean_b, std_b = evaluate_on_benchmarks(env, ppo_count_policy, "test_maps", 5)
         bench["PPO + count"].append(mean_b)
@@ -384,10 +400,20 @@ def main():
                 os.path.join("checkpoints", f"ppo_rnd_{run_seed}.pt"),
                 rnd=rnd,
             )
-            plot_training_curves(rewards_ppo_rnd, None, success_rnd)
+            curve_logs["PPO + RND"]["rewards"].append(rewards_ppo_rnd)
+            curve_logs["PPO + RND"]["success"].append(success_rnd)
             render_episode_video(env, ppo_rnd_policy, os.path.join("videos", f"ppo_rnd_{run_seed}.gif"))
             mean_b, std_b = evaluate_on_benchmarks(env, ppo_rnd_policy, "test_maps", 5)
-            bench["PPO + RND"].append(mean_b)
+        bench["PPO + RND"].append(mean_b)
+
+        # Plot aggregated curves across seeds for this setting
+        for name, logs_dict in curve_logs.items():
+            if logs_dict["rewards"]:
+                plot_training_curves(
+                    logs_dict["rewards"],
+                    logs_dict["intrinsic"] if logs_dict["intrinsic"] else None,
+                    logs_dict["success"],
+                )
 
         # Aggregate metrics across seeds for this setting
         baseline_rewards = np.array(metrics["PPO Only"]["rewards"])

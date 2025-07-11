@@ -7,22 +7,52 @@ import torch
 import imageio
 
 
-def plot_training_curves(reward_log, intrinsic_log, success_flags):
-    """Plot extrinsic/intrinsic rewards and success rate across episodes."""
-    episodes = np.arange(len(reward_log))
+def _stack_logs(logs: list[list[float]] | None, name: str) -> pd.DataFrame:
+    """Convert a list of episode logs into a long-form DataFrame."""
+    if logs is None:
+        return pd.DataFrame()
+    frames = []
+    for idx, log in enumerate(logs):
+        frames.append(
+            pd.DataFrame({"Episode": np.arange(len(log)), name: log, "Seed": idx})
+        )
+    return pd.concat(frames, ignore_index=True)
+
+
+def plot_training_curves(
+    reward_logs: list[list[float]],
+    intrinsic_logs: list[list[float]] | None,
+    success_logs: list[list[int]],
+) -> None:
+    """Plot mean extrinsic/intrinsic rewards and success rate across seeds."""
+
+    if reward_logs and not isinstance(reward_logs[0], (list, np.ndarray)):
+        reward_logs = [reward_logs]  # backwards compatibility
+    if intrinsic_logs and intrinsic_logs and not isinstance(intrinsic_logs[0], (list, np.ndarray)):
+        intrinsic_logs = [intrinsic_logs]
+    if success_logs and not isinstance(success_logs[0], (list, np.ndarray)):
+        success_logs = [success_logs]
+
     sns.set(style="darkgrid")
     fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(12, 4))
 
-    sns.lineplot(x=episodes, y=reward_log, ax=ax1, label="Extrinsic")
-    if intrinsic_log is not None:
-        sns.lineplot(x=episodes, y=intrinsic_log, ax=ax1, label="Intrinsic")
+    reward_df = _stack_logs(reward_logs, "Value")
+    sns.lineplot(data=reward_df, x="Episode", y="Value", ax=ax1, ci=95, label="Extrinsic")
+
+    if intrinsic_logs is not None:
+        intrinsic_df = _stack_logs(intrinsic_logs, "Value")
+        sns.lineplot(data=intrinsic_df, x="Episode", y="Value", ax=ax1, ci=95, label="Intrinsic")
+
     ax1.set_xlabel("Episode")
     ax1.set_ylabel("Reward")
     ax1.set_title("Training Rewards")
     ax1.legend()
 
-    success_rate = np.cumsum(success_flags) / (np.arange(len(success_flags)) + 1)
-    sns.lineplot(x=episodes, y=success_rate, ax=ax2, color="green")
+    success_rates = []
+    for flags in success_logs:
+        success_rates.append(np.cumsum(flags) / (np.arange(len(flags)) + 1))
+    success_df = _stack_logs(success_rates, "Value")
+    sns.lineplot(data=success_df, x="Episode", y="Value", ax=ax2, ci=95, color="green")
     ax2.set_xlabel("Episode")
     ax2.set_ylabel("Success Rate")
     ax2.set_ylim(0, 1)
