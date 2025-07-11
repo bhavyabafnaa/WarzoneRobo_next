@@ -79,6 +79,12 @@ def parse_args():
         action="store_true",
         help="Loop over disabling ICM, RND and the planner individually",
     )
+    parser.add_argument(
+        "--log_backend",
+        choices=["wandb", "tensorboard", "none"],
+        default="none",
+        help="Logging backend to use",
+    )
     return parser.parse_args()
 
 
@@ -89,6 +95,17 @@ def main():
             cfg = yaml.safe_load(f)
         for k, v in cfg.items():
             setattr(args, k, v)
+
+    logger = None
+    if args.log_backend == "tensorboard":
+        from torch.utils.tensorboard import SummaryWriter
+        log_dir = os.path.join("logs", "tensorboard")
+        os.makedirs(log_dir, exist_ok=True)
+        logger = SummaryWriter(log_dir)
+    elif args.log_backend == "wandb":
+        import wandb
+        wandb.init(project="warzone", config=vars(args))
+        logger = wandb
 
     grid_size = args.grid_size
     input_dim = 5 * grid_size * grid_size
@@ -198,6 +215,7 @@ def main():
             planner_weights=planner_weights,
             seed=run_seed,
             add_noise=args.add_noise,
+            logger=logger,
         )
         metrics["PPO Only"]["rewards"].append(float(np.mean(rewards_ppo_only)))
         metrics["PPO Only"]["success"].append(
@@ -226,6 +244,7 @@ def main():
             planner_weights=planner_weights,
             seed=run_seed,
             add_noise=args.add_noise,
+            logger=logger,
         )
             metrics["PPO + ICM"]["rewards"].append(float(np.mean(rewards_ppo_icm)))
             metrics["PPO + ICM"]["success"].append(
@@ -255,6 +274,7 @@ def main():
             planner_weights=planner_weights,
             seed=run_seed,
             add_noise=args.add_noise,
+            logger=logger,
         )
         metrics["PPO + PC"]["rewards"].append(float(np.mean(rewards_pc)))
         metrics["PPO + PC"]["success"].append(
@@ -283,6 +303,7 @@ def main():
                 planner_weights=planner_weights,
                 seed=run_seed,
                 add_noise=args.add_noise,
+                logger=logger,
             )
             metrics["PPO + ICM + Planner"]["rewards"].append(float(np.mean(rewards_ppo_icm_plan)))
             metrics["PPO + ICM + Planner"]["success"].append(
@@ -320,6 +341,7 @@ def main():
             planner_weights=planner_weights,
             seed=run_seed,
             add_noise=args.add_noise,
+            logger=logger,
         )
         metrics["PPO + count"]["rewards"].append(float(np.mean(rewards_ppo_count)))
         metrics["PPO + count"]["success"].append(
@@ -351,6 +373,7 @@ def main():
                 planner_weights=planner_weights,
                 seed=run_seed,
                 add_noise=args.add_noise,
+                logger=logger,
             )
             metrics["PPO + RND"]["rewards"].append(float(np.mean(rewards_ppo_rnd)))
             metrics["PPO + RND"]["success"].append(
@@ -415,6 +438,11 @@ generate_results_table(df_train, os.path.join("results", "training_results.html"
 if all_bench:
     df_bench = pd.DataFrame(all_bench)
     generate_results_table(df_bench, os.path.join("results", "benchmark_results.html"))
+
+if args.log_backend == "tensorboard" and logger is not None:
+    logger.close()
+elif args.log_backend == "wandb" and logger is not None:
+    logger.finish()
 
 
 if __name__ == "__main__":

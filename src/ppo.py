@@ -59,6 +59,7 @@ def train_agent(
     pseudo: Optional[PseudoCountExploration] = None,
     seed: int = 42,
     add_noise: bool = False,
+    logger=None,
 ):
 
     reward_log = []
@@ -147,6 +148,8 @@ def train_agent(
                 curiosity = torch.tensor([0.0])
                 total_reward = ext_reward
 
+            intrinsic_log += curiosity.item()
+
             agent_path.append(tuple(env.agent_pos))
             if episode > 200 and step_count % 10 == 0:
                 cx, cy = env.grid_size // 2, env.grid_size // 2
@@ -206,6 +209,22 @@ def train_agent(
         else:
             planner_percent = 0
         planner_usage_rate.append(planner_percent)
+
+        success_rate = np.mean(success_flags)
+        if logger is not None:
+            if hasattr(logger, "add_scalar"):
+                logger.add_scalar("reward", total_ext_reward, episode)
+                logger.add_scalar("intrinsic_reward", intrinsic_log, episode)
+                logger.add_scalar("success_rate", success_rate, episode)
+            elif hasattr(logger, "log"):
+                logger.log(
+                    {
+                        "reward": total_ext_reward,
+                        "intrinsic_reward": intrinsic_log,
+                        "success_rate": success_rate,
+                        "episode": episode,
+                    }
+                )
 
         print(f"Episode {episode:03d} | Steps: {step_count} | External Reward: {total_ext_reward:.2f}")
         print(f"Episode {episode:03d} | PPO: {ppo_decisions} | Planner: {planner_decisions}")
