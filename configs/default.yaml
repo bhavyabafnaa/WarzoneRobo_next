@@ -6,4 +6,4 @@ goal_weight: 0.5
 revisit_penalty: 1.0
 dynamic_risk: false
 add_noise: false
-seed: 42
+seed: 42  # used for numpy and torch; enables deterministic CUDNN

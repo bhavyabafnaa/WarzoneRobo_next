@@ -78,7 +78,7 @@ Train all models from a configuration file:
 ```bash
 python train.py --config configs/default.yaml
 ```
-Checkpoints are saved under `checkpoints/`, episode videos under `videos/`, and result tables under `results/`. Hyperparameters such as planner weights (`cost_weight`, `risk_weight`, etc.) can be edited in the YAML file or passed as command-line flags.
+Checkpoints are saved under `checkpoints/`, episode videos under `videos/`, and result tables under `results/`. Hyperparameters such as planner weights (`cost_weight`, `risk_weight`, etc.) can be edited in the YAML file or passed as command-line flags. The `seed` value in `configs/default.yaml` initializes both NumPy and PyTorch and turns on deterministic CuDNN settings so runs are reproducible.
 
 To repeat an experiment with multiple random seeds you can loop over the `--seed` argument:
 

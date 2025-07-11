@@ -101,6 +101,12 @@ def main():
         for k, v in cfg.items():
             setattr(args, k, v)
 
+    # Set random seeds for reproducibility
+    np.random.seed(args.seed)
+    torch.manual_seed(args.seed)
+    torch.backends.cudnn.deterministic = True
+    torch.backends.cudnn.benchmark = False
+
     logger = None
     if args.log_backend == "tensorboard":
         from torch.utils.tensorboard import SummaryWriter
