@@ -4,13 +4,12 @@ import yaml
 import torch
 import torch.optim as optim
 import pandas as pd
+import numpy as np
 
 from src.env import (
     GridWorldICM,
     export_benchmark_maps,
     visualize_paths_on_benchmark_maps,
-    plot_model_performance,
-    evaluate_on_benchmarks,
 )
 from src.visualization import (
     plot_training_curves,
@@ -22,7 +21,7 @@ from src.icm import ICMModule
 from src.rnd import RNDModule
 from src.planner import SymbolicPlanner
 from src.ppo import PPOPolicy, train_agent
-from src.utils import save_model, load_model
+from src.utils import save_model
 
 
 def parse_args():
@@ -50,6 +49,13 @@ def parse_args():
     parser.add_argument("--dynamic_risk", action="store_true", help="Enable dynamic risk in env")
     parser.add_argument("--add_noise", action="store_true", help="Add noise when resetting maps")
     parser.add_argument("--seed", type=int, default=42, help="Random seed")
+    parser.add_argument(
+        "--seeds",
+        type=int,
+        nargs="+",
+        default=None,
+        help="List of seeds or single integer count",
+    )
     return parser.parse_args()
 
 
@@ -65,10 +71,17 @@ def main():
     input_dim = 5 * grid_size * grid_size
     action_dim = 4
 
+    if args.seeds:
+        seeds = args.seeds
+        if len(seeds) == 1:
+            seeds = list(range(seeds[0]))
+    else:
+        seeds = [args.seed]
+
     env = GridWorldICM(
         grid_size=grid_size,
         dynamic_risk=args.dynamic_risk,
-        seed=args.seed,
+        seed=seeds[0],
     )
     icm = ICMModule(input_dim, action_dim)
     planner = SymbolicPlanner(
@@ -96,179 +109,186 @@ def main():
         "revisit_penalty": args.revisit_penalty,
     }
 
-    # PPO only
-    ppo_policy = PPOPolicy(input_dim, action_dim)
-    opt_ppo = optim.Adam(ppo_policy.parameters(), lr=3e-4)
-    rewards_ppo_only, _, _, _, paths_ppo_only, _, success_ppo_only, _ = train_agent(
-        env,
-        ppo_policy,
-        icm,
-        planner,
-        opt_ppo,
-        opt_ppo,
-        use_icm=False,
-        use_planner=False,
-        num_episodes=args.num_episodes,
-        planner_weights=planner_weights,
-        seed=args.seed,
-        add_noise=args.add_noise,
-    )
-    save_model(ppo_policy, os.path.join("checkpoints", "ppo_only.pt"))
-    plot_training_curves(rewards_ppo_only, None, success_ppo_only)
-    render_episode_video(env, ppo_policy, os.path.join("videos", "ppo_only.gif"))
+    metrics = {
+        "PPO Only": {"rewards": [], "success": []},
+        "PPO + ICM": {"rewards": [], "success": []},
+        "PPO + ICM + Planner": {"rewards": [], "success": []},
+        "PPO + count": {"rewards": [], "success": []},
+        "PPO + RND": {"rewards": [], "success": []},
+    }
 
-    # PPO + ICM
-    ppo_icm_policy = PPOPolicy(input_dim, action_dim)
-    opt_icm_policy = optim.Adam(ppo_icm_policy.parameters(), lr=3e-4)
-    rewards_ppo_icm, intrinsic_icm, _, _, paths_icm, _, success_icm, _ = train_agent(
-        env,
-        ppo_icm_policy,
-        icm,
-        planner,
-        opt_icm_policy,
-        opt_icm_policy,
-        use_icm=True,
-        use_planner=False,
-        num_episodes=args.num_episodes,
-        planner_weights=planner_weights,
-        seed=args.seed,
-        add_noise=args.add_noise,
-    )
-    save_model(ppo_icm_policy, os.path.join("checkpoints", "ppo_icm.pt"), icm=icm)
-    plot_training_curves(rewards_ppo_icm, intrinsic_icm, success_icm)
-    render_episode_video(env, ppo_icm_policy, os.path.join("videos", "ppo_icm.gif"))
-
-    # PPO + ICM + Planner
-    ppo_icm_planner_policy = PPOPolicy(input_dim, action_dim)
-    opt_plan_policy = optim.Adam(ppo_icm_planner_policy.parameters(), lr=3e-4)
-    rewards_ppo_icm_plan, intrinsic_plan, _, _, paths_plan, _, success_plan, _ = train_agent(
-        env,
-        ppo_icm_planner_policy,
-        icm,
-        planner,
-        opt_plan_policy,
-        opt_plan_policy,
-        use_icm=True,
-        use_planner=True,
-        num_episodes=args.num_episodes,
-        planner_weights=planner_weights,
-        seed=args.seed,
-        add_noise=args.add_noise,
-    )
-    save_model(
-        ppo_icm_planner_policy,
-        os.path.join("checkpoints", "ppo_icm_planner.pt"),
-        icm=icm,
-    )
-    plot_training_curves(rewards_ppo_icm_plan, intrinsic_plan, success_plan)
-    render_episode_video(
-        env,
-        ppo_icm_planner_policy,
-        os.path.join("videos", "ppo_icm_planner.gif"),
-    )
-    if paths_plan:
-        plot_heatmap_with_path(env, paths_plan[-1])
-
-    # Count-based exploration
-    ppo_count_policy = PPOPolicy(input_dim, action_dim)
-    opt_count_policy = optim.Adam(ppo_count_policy.parameters(), lr=3e-4)
-    rewards_ppo_count, _, _, _, paths_count, _, success_count, _ = train_agent(
-        env,
-        ppo_count_policy,
-        icm,
-        planner,
-        opt_count_policy,
-        opt_count_policy,
-        use_icm="count",
-        use_planner=False,
-        num_episodes=args.num_episodes,
-        planner_weights=planner_weights,
-        seed=args.seed,
-        add_noise=args.add_noise,
-    )
-    save_model(ppo_count_policy, os.path.join("checkpoints", "ppo_count.pt"))
-    plot_training_curves(rewards_ppo_count, None, success_count)
-    render_episode_video(env, ppo_count_policy, os.path.join("videos", "ppo_count.gif"))
-
-    # RND exploration
-    ppo_rnd_policy = PPOPolicy(input_dim, action_dim)
-    opt_rnd_policy = optim.Adam(ppo_rnd_policy.parameters(), lr=3e-4)
-    rnd = RNDModule(input_dim)
-    opt_rnd = optim.Adam(rnd.predictor.parameters(), lr=1e-3)
-    rewards_ppo_rnd, _, _, _, paths_rnd, _, success_rnd, _ = train_agent(
-        env,
-        ppo_rnd_policy,
-        icm,
-        planner,
-        opt_rnd_policy,
-        opt_rnd,
-        use_icm="rnd",
-        use_planner=False,
-        rnd=rnd,
-        num_episodes=args.num_episodes,
-        planner_weights=planner_weights,
-        seed=args.seed,
-        add_noise=args.add_noise,
-    )
-    save_model(
-        ppo_rnd_policy,
-        os.path.join("checkpoints", "ppo_rnd.pt"),
-        rnd=rnd,
-    )
-    plot_training_curves(rewards_ppo_rnd, None, success_rnd)
-    render_episode_video(env, ppo_rnd_policy, os.path.join("videos", "ppo_rnd.gif"))
-
-    # Load a saved model for evaluation on benchmark maps
-    eval_policy, _, _ = load_model(
-        PPOPolicy,
-        input_dim,
-        action_dim,
-        os.path.join("checkpoints", "ppo_icm_planner.pt"),
-        icm_class=ICMModule,
-    )
-    visualize_paths_on_benchmark_maps(env, eval_policy, map_folder="test_maps/", num_maps=3)
-
-    models = [
-        ppo_policy,
-        ppo_icm_policy,
-        ppo_icm_planner_policy,
-        ppo_count_policy,
-        ppo_rnd_policy,
-    ]
-    model_names = [
-        "PPO Only",
-        "PPO + ICM",
-        "PPO + ICM + Planner",
-        "PPO + count",
-        "PPO + RND",
-    ]
-
-    # Collect benchmark metrics for each variant
-    results = []
-    success_lists = [
-        success_ppo_only,
-        success_icm,
-        success_plan,
-        success_count,
-        success_rnd,
-    ]
-    for name, model, successes in zip(model_names, models, success_lists):
-        mean_r, std_r = evaluate_on_benchmarks(env, model, map_folder="test_maps/", num_maps=5)
-        success_rate = float(sum(successes)) / len(successes) if successes else 0.0
-        results.append(
-            {
-                "Model": name,
-                "Mean Reward": mean_r,
-                "Reward Std": std_r,
-                "Training Success Rate": success_rate,
-            }
+    for run_seed in seeds:
+        env.reset(seed=run_seed)
+        icm = ICMModule(input_dim, action_dim)
+        planner = SymbolicPlanner(
+            env.cost_map,
+            env.risk_map,
+            env.goal_pos,
+            env.np_random,
+            cost_weight=args.cost_weight,
+            risk_weight=args.risk_weight,
+            goal_weight=args.goal_weight,
+            revisit_penalty=args.revisit_penalty,
         )
 
-    df = pd.DataFrame(results)
-    os.makedirs("results", exist_ok=True)
-    generate_results_table(df, os.path.join("results", "benchmark_results.html"))
+        # PPO only
+        ppo_policy = PPOPolicy(input_dim, action_dim)
+        opt_ppo = optim.Adam(ppo_policy.parameters(), lr=3e-4)
+        rewards_ppo_only, _, _, _, paths_ppo_only, _, success_ppo_only, _ = train_agent(
+            env,
+            ppo_policy,
+            icm,
+            planner,
+            opt_ppo,
+            opt_ppo,
+            use_icm=False,
+            use_planner=False,
+            num_episodes=args.num_episodes,
+            planner_weights=planner_weights,
+            seed=run_seed,
+            add_noise=args.add_noise,
+        )
+        metrics["PPO Only"]["rewards"].append(float(np.mean(rewards_ppo_only)))
+        metrics["PPO Only"]["success"].append(
+            float(sum(success_ppo_only)) / len(success_ppo_only) if success_ppo_only else 0.0
+        )
+        save_model(ppo_policy, os.path.join("checkpoints", f"ppo_only_{run_seed}.pt"))
+        plot_training_curves(rewards_ppo_only, None, success_ppo_only)
+        render_episode_video(env, ppo_policy, os.path.join("videos", f"ppo_only_{run_seed}.gif"))
 
-    plot_model_performance(models, model_names, env, map_folder="test_maps/", num_maps=5)
+        # PPO + ICM
+        ppo_icm_policy = PPOPolicy(input_dim, action_dim)
+        opt_icm_policy = optim.Adam(ppo_icm_policy.parameters(), lr=3e-4)
+        rewards_ppo_icm, intrinsic_icm, _, _, paths_icm, _, success_icm, _ = train_agent(
+            env,
+            ppo_icm_policy,
+            icm,
+            planner,
+            opt_icm_policy,
+            opt_icm_policy,
+            use_icm=True,
+            use_planner=False,
+            num_episodes=args.num_episodes,
+            planner_weights=planner_weights,
+            seed=run_seed,
+            add_noise=args.add_noise,
+        )
+        metrics["PPO + ICM"]["rewards"].append(float(np.mean(rewards_ppo_icm)))
+        metrics["PPO + ICM"]["success"].append(
+            float(sum(success_icm)) / len(success_icm) if success_icm else 0.0
+        )
+        save_model(ppo_icm_policy, os.path.join("checkpoints", f"ppo_icm_{run_seed}.pt"), icm=icm)
+        plot_training_curves(rewards_ppo_icm, intrinsic_icm, success_icm)
+        render_episode_video(env, ppo_icm_policy, os.path.join("videos", f"ppo_icm_{run_seed}.gif"))
+
+        # PPO + ICM + Planner
+        ppo_icm_planner_policy = PPOPolicy(input_dim, action_dim)
+        opt_plan_policy = optim.Adam(ppo_icm_planner_policy.parameters(), lr=3e-4)
+        rewards_ppo_icm_plan, intrinsic_plan, _, _, paths_plan, _, success_plan, _ = train_agent(
+            env,
+            ppo_icm_planner_policy,
+            icm,
+            planner,
+            opt_plan_policy,
+            opt_plan_policy,
+            use_icm=True,
+            use_planner=True,
+            num_episodes=args.num_episodes,
+            planner_weights=planner_weights,
+            seed=run_seed,
+            add_noise=args.add_noise,
+        )
+        metrics["PPO + ICM + Planner"]["rewards"].append(float(np.mean(rewards_ppo_icm_plan)))
+        metrics["PPO + ICM + Planner"]["success"].append(
+            float(sum(success_plan)) / len(success_plan) if success_plan else 0.0
+        )
+        save_model(
+            ppo_icm_planner_policy,
+            os.path.join("checkpoints", f"ppo_icm_planner_{run_seed}.pt"),
+            icm=icm,
+        )
+        plot_training_curves(rewards_ppo_icm_plan, intrinsic_plan, success_plan)
+        render_episode_video(
+            env,
+            ppo_icm_planner_policy,
+            os.path.join("videos", f"ppo_icm_planner_{run_seed}.gif"),
+        )
+        if paths_plan:
+            plot_heatmap_with_path(env, paths_plan[-1])
+
+        # Count-based exploration
+        ppo_count_policy = PPOPolicy(input_dim, action_dim)
+        opt_count_policy = optim.Adam(ppo_count_policy.parameters(), lr=3e-4)
+        rewards_ppo_count, _, _, _, paths_count, _, success_count, _ = train_agent(
+            env,
+            ppo_count_policy,
+            icm,
+            planner,
+            opt_count_policy,
+            opt_count_policy,
+            use_icm="count",
+            use_planner=False,
+            num_episodes=args.num_episodes,
+            planner_weights=planner_weights,
+            seed=run_seed,
+            add_noise=args.add_noise,
+        )
+        metrics["PPO + count"]["rewards"].append(float(np.mean(rewards_ppo_count)))
+        metrics["PPO + count"]["success"].append(
+            float(sum(success_count)) / len(success_count) if success_count else 0.0
+        )
+        save_model(ppo_count_policy, os.path.join("checkpoints", f"ppo_count_{run_seed}.pt"))
+        plot_training_curves(rewards_ppo_count, None, success_count)
+        render_episode_video(env, ppo_count_policy, os.path.join("videos", f"ppo_count_{run_seed}.gif"))
+
+        # RND exploration
+        ppo_rnd_policy = PPOPolicy(input_dim, action_dim)
+        opt_rnd_policy = optim.Adam(ppo_rnd_policy.parameters(), lr=3e-4)
+        rnd = RNDModule(input_dim)
+        opt_rnd = optim.Adam(rnd.predictor.parameters(), lr=1e-3)
+        rewards_ppo_rnd, _, _, _, paths_rnd, _, success_rnd, _ = train_agent(
+            env,
+            ppo_rnd_policy,
+            icm,
+            planner,
+            opt_rnd_policy,
+            opt_rnd,
+            use_icm="rnd",
+            use_planner=False,
+            rnd=rnd,
+            num_episodes=args.num_episodes,
+            planner_weights=planner_weights,
+            seed=run_seed,
+            add_noise=args.add_noise,
+        )
+        metrics["PPO + RND"]["rewards"].append(float(np.mean(rewards_ppo_rnd)))
+        metrics["PPO + RND"]["success"].append(
+            float(sum(success_rnd)) / len(success_rnd) if success_rnd else 0.0
+        )
+        save_model(
+            ppo_rnd_policy,
+            os.path.join("checkpoints", f"ppo_rnd_{run_seed}.pt"),
+            rnd=rnd,
+        )
+        plot_training_curves(rewards_ppo_rnd, None, success_rnd)
+        render_episode_video(env, ppo_rnd_policy, os.path.join("videos", f"ppo_rnd_{run_seed}.gif"))
+
+# Aggregate metrics across seeds
+results = []
+for name, data in metrics.items():
+    results.append(
+        {
+            "Model": name,
+            "Train Reward Mean": float(np.mean(data["rewards"])),
+            "Train Reward Std": float(np.std(data["rewards"])),
+            "Success Mean": float(np.mean(data["success"])),
+            "Success Std": float(np.std(data["success"])),
+        }
+    )
+
+df = pd.DataFrame(results)
+os.makedirs("results", exist_ok=True)
+generate_results_table(df, os.path.join("results", "training_results.html"))
 
 
 if __name__ == "__main__":
