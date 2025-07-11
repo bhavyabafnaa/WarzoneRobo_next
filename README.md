@@ -94,3 +94,17 @@ Execute the unit tests with:
 pytest -q
 ```
 The full suite runs in well under a minute on a CPU.
+
+## Reproducing Our Results
+The provided Dockerfile allows you to recreate the exact environment used for
+our experiments. Run the following commands:
+
+```bash
+git clone <repo-url>
+cd WarzoneRobo
+docker build -t warzonerobo .
+docker run --rm warzonerobo python train.py --config configs/default.yaml
+```
+
+Checkpoints are saved under `checkpoints/` and benchmark tables under
+`results/` within the repository.
