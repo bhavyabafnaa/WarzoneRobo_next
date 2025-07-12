@@ -231,7 +231,13 @@ def train_agent(
                     }
                 )
 
-        print(f"Episode {episode:03d} | Steps: {step_count} | External Reward: {total_ext_reward:.2f}")
-        print(f"Episode {episode:03d} | PPO: {ppo_decisions} | Planner: {planner_decisions}")
+        print(
+            f"Episode {episode + 1:03d}/{num_episodes} | "
+            f"Reward: {total_ext_reward:.2f} | "
+            f"Steps: {step_count} | "
+            f"PPO: {ppo_decisions} | "
+            f"Planner: {planner_decisions} | "
+            f"Success: {success_rate * 100:.1f}%"
+        )
 
     return reward_log, intrinsic_rewards, extrinsic_rewards, planner_usage, paths_log, step_counts, success_flags, planner_usage_rate
