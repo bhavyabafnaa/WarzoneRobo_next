@@ -174,4 +174,6 @@ def render_episode_video(env, policy, output_path: str, max_steps: int = 100, se
         step += 1
 
     os.makedirs(os.path.dirname(output_path) or ".", exist_ok=True)
-    imageio.mimsave(output_path, frames, fps=5)
+    fps = 5
+    duration = int(1000 / fps)
+    imageio.mimsave(output_path, frames, duration=duration)
