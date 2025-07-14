@@ -77,7 +77,7 @@ are marked with `*` in the table and those below `0.01` with `**`.
 The notebook experiments with different combinations of these components to evaluate their effect on success rate and exploration.
 
 ## Environment features
-The grid world includes an optional *dynamic risk* mode where risk levels grow as enemies move. Benchmark maps can be exported with `export_benchmark_maps` and loaded later for evaluation. The environment's `render()` method returns RGB frames so that `render_episode_video` can produce GIFs of agent behavior.
+The grid world includes an optional *dynamic risk* mode where risk values around the moving enemies gradually rise and decay over time. Benchmark maps can be exported with `export_benchmark_maps` and loaded later for evaluation. The environment's `render()` method returns RGB frames so that `render_episode_video` can produce GIFs of agent behavior.
 
 ## Running Experiments
 Train all models from a configuration file:

@@ -100,14 +100,22 @@ class GridWorldICM:
         self.agent_pos = [x, y]
 
         self.steps += 1
-        if self.dynamic_risk and self.np_random.rand() < 0.1:
-            i, j = self.np_random.randint(self.grid_size, size=2)
-            self.risk_map[i][j] = min(1.0, self.risk_map[i][j] + 0.5)
 
         for enemy in self.enemy_positions:
             dx, dy = self.np_random.choice([-1, 0, 1], size=2)
             enemy[0] = np.clip(enemy[0] + dx, 0, self.grid_size - 1)
             enemy[1] = np.clip(enemy[1] + dy, 0, self.grid_size - 1)
+
+        if self.dynamic_risk:
+            self.risk_map *= 0.95
+            for ex, ey in self.enemy_positions:
+                self.risk_map[ex, ey] = min(1.0, self.risk_map[ex, ey] + 0.5)
+                for dx, dy in [(-1, 0), (1, 0), (0, -1), (0, 1)]:
+                    nx, ny = ex + dx, ey + dy
+                    if 0 <= nx < self.grid_size and 0 <= ny < self.grid_size:
+                        self.risk_map[nx, ny] = min(
+                            1.0, self.risk_map[nx, ny] + 0.25
+                        )
 
         cost = np.clip(self.cost_map[x][y], 0, 1)
         risk = np.clip(self.risk_map[x][y], 0, 1)
