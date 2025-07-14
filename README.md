@@ -50,6 +50,7 @@ Additional environment options can also be specified in the YAML:
 grid_size: 8
 num_episodes: 200
 dynamic_risk: true      # enemies increase risk over time
+dynamic_cost: true     # cost near mines decays and rises dynamically
 add_noise: true         # perturb loaded maps on reset
 ```
 
@@ -77,7 +78,7 @@ are marked with `*` in the table and those below `0.01` with `**`.
 The notebook experiments with different combinations of these components to evaluate their effect on success rate and exploration.
 
 ## Environment features
-The grid world includes an optional *dynamic risk* mode where risk values around the moving enemies gradually rise and decay over time. Benchmark maps can be exported with `export_benchmark_maps` and loaded later for evaluation. The environment's `render()` method returns RGB frames so that `render_episode_video` can produce GIFs of agent behavior.
+The grid world includes optional *dynamic risk* and *dynamic cost* modes. With dynamic risk enabled, values around moving enemies rise and decay over time. Dynamic cost similarly adjusts the traversal cost map, increasing values near mines while slowly decaying elsewhere. Benchmark maps can be exported with `export_benchmark_maps` and loaded later for evaluation. The environment's `render()` method returns RGB frames so that `render_episode_video` can produce GIFs of agent behavior.
 
 ## Running Experiments
 Train all models from a configuration file:
