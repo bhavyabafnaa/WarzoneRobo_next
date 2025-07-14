@@ -48,7 +48,6 @@ class GridWorldICM:
             self.mine_map = self.np_random.random((self.grid_size, self.grid_size)) < 0.05
             self.terrain_map[self.np_random.random((self.grid_size, self.grid_size)) < 0.15] = "mud"
             self.terrain_map[self.np_random.random((self.grid_size, self.grid_size)) < 0.15] = "water"
-            self.goal_pos = [self.grid_size - 1, self.grid_size - 1]
             self.enemy_positions = [[self.grid_size // 2, self.grid_size // 2]]
 
         if add_noise:
@@ -58,7 +57,6 @@ class GridWorldICM:
             self.cost_map = np.clip(self.cost_map + noise, 0.0, 1.0)
 
         self.agent_pos = [0, 0]
-        self.prev_distance_to_goal = self._distance_to_goal(self.agent_pos)
         self.steps = 0
 
         return self._get_obs(), {}
@@ -69,7 +67,6 @@ class GridWorldICM:
         self.risk_map = data["risk_map"]
         self.terrain_map = data["terrain_map"]
         self.mine_map = data["mine_map"]
-        self.goal_pos = list(data["goal_pos"])
         self.enemy_positions = data["enemy_positions"].tolist()
         self.grid_size = self.cost_map.shape[0]
 
@@ -80,12 +77,9 @@ class GridWorldICM:
             risk_map=self.risk_map,
             terrain_map=self.terrain_map,
             mine_map=self.mine_map,
-            goal_pos=self.goal_pos,
             enemy_positions=np.array(self.enemy_positions),
         )
 
-    def _distance_to_goal(self, pos: List[int]) -> float:
-        return np.linalg.norm(np.array(pos) - np.array(self.goal_pos))
 
     def step(self, action: int, terrain_decay: float = 1.0):
         x, y = self.agent_pos
@@ -129,20 +123,14 @@ class GridWorldICM:
 
         if self.mine_map[x][y]:
             reward -= 2
+            return self._get_obs(), self._clip_reward(reward), True, False, {}
 
         for ex, ey in self.enemy_positions:
             if [x, y] == [ex, ey]:
                 reward -= 3
                 return self._get_obs(), self._clip_reward(reward), True, False, {}
 
-        dist = self._distance_to_goal([x, y])
-        if dist < self.prev_distance_to_goal:
-            reward += 0.2
-        self.prev_distance_to_goal = dist
-
-        done = [x, y] == self.goal_pos or self.steps >= self.max_steps
-        if [x, y] == self.goal_pos:
-            reward += 50
+        done = self.steps >= self.max_steps
 
         return self._get_obs(), self._clip_reward(reward), done, False, {}
 
@@ -150,19 +138,18 @@ class GridWorldICM:
         return np.clip(r, self.reward_clip[0], self.reward_clip[1])
 
     def _get_obs(self) -> np.ndarray:
-        obs = np.zeros((5, self.grid_size, self.grid_size), dtype=np.float32)
+        obs = np.zeros((4, self.grid_size, self.grid_size), dtype=np.float32)
         obs[0, self.agent_pos[0], self.agent_pos[1]] = 1.0
         obs[1] = self.cost_map
         obs[2] = self.risk_map
-        obs[3, self.goal_pos[0], self.goal_pos[1]] = 1.0
         for i in range(self.grid_size):
             for j in range(self.grid_size):
                 if self.terrain_map[i][j] == "mud":
-                    obs[4, i, j] = 0.5
+                    obs[3, i, j] = 0.5
                 elif self.terrain_map[i][j] == "water":
-                    obs[4, i, j] = 0.8
+                    obs[3, i, j] = 0.8
                 if self.mine_map[i][j]:
-                    obs[4, i, j] = 1.0
+                    obs[3, i, j] = 1.0
         return obs.flatten()
 
     def render(self) -> np.ndarray:
@@ -199,12 +186,6 @@ class GridWorldICM:
                     )
                 )
 
-        gx, gy = self.goal_pos
-        ax.add_patch(
-            patches.Rectangle(
-                (gy, self.grid_size - 1 - gx), 1, 1, facecolor="lime", edgecolor="black"
-            )
-        )
         for ex, ey in self.enemy_positions:
             ax.add_patch(
                 patches.Circle(
@@ -272,7 +253,6 @@ def visualize_paths_on_benchmark_maps(
         ax = axs[i]
         ax.imshow(np.zeros((env.grid_size, env.grid_size)), cmap="Greys", origin="lower")
         ax.add_collection(lc)
-        ax.plot(env.goal_pos[1], env.goal_pos[0], marker="*", color="lime", markersize=10)
         ax.set_title(f"Map {i}")
         ax.axis("off")
 
