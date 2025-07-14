@@ -2,7 +2,7 @@ import numpy as np
 
 
 class SymbolicPlanner:
-    """A simple scoring-based planner used to select safer actions."""
+    """Scoring-based planner that favors low cost and low risk cells."""
 
     def __init__(
         self,
@@ -31,6 +31,7 @@ class SymbolicPlanner:
             cost = self.cost_map[i][j]
             risk = self.risk_map[i][j]
             revisit = self.revisit_penalty if self.visited_map[i][j] else 0
+            # Candidate score is weighted sum of cost and risk only
             return (
                 self.cost_weight * cost
                 + self.risk_weight * risk
