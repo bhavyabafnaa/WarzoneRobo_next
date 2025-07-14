@@ -88,7 +88,7 @@ def train_agent(
         obs_buf, action_buf, logprob_buf, val_buf, reward_buf = [], [], [], [], []
         agent_path = []
         planner_decisions = 0
-        if planner_weights:
+        if planner_weights is not None:
             planner = SymbolicPlanner(
                 env.cost_map,
                 env.risk_map,
@@ -97,6 +97,12 @@ def train_agent(
                 risk_weight=planner_weights.get("risk_weight", 3.0),
                 revisit_penalty=planner_weights.get("revisit_penalty", 1.0),
             )
+        else:
+            planner.cost_map = env.cost_map
+            planner.risk_map = env.risk_map
+            planner.np_random = env.np_random
+            planner.grid_size = env.grid_size
+            planner.reset()
 
         ppo_decisions = 0
         intrinsic_log = 0

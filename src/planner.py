@@ -22,6 +22,10 @@ class SymbolicPlanner:
         self.grid_size = cost_map.shape[0]
         self.visited_map = np.zeros_like(cost_map, dtype=bool)
 
+    def reset(self):
+        """Clear internal visitation state."""
+        self.visited_map[:] = False
+
     def get_safe_subgoal(self, agent_pos):
         x, y = agent_pos
         directions = {0: (-1, 0), 1: (1, 0), 2: (0, -1), 3: (0, 1)}

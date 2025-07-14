@@ -23,3 +23,13 @@ def test_get_safe_subgoal_prefers_low_cost_when_risk_equal():
     assert action in {0, 1, 2, 3}
     # best action should be down (1) due to lower cost
     assert action == 1
+
+
+def test_planner_reset_clears_visited():
+    cost = np.zeros((2, 2))
+    risk = np.zeros((2, 2))
+    planner = SymbolicPlanner(cost, risk, np_random=np.random.RandomState(2))
+    planner.get_safe_subgoal((0, 0))
+    assert planner.visited_map[0, 0]
+    planner.reset()
+    assert not planner.visited_map.any()
