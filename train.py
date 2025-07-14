@@ -146,7 +146,7 @@ def main():
         logger = wandb
 
     grid_size = args.grid_size
-    input_dim = 5 * grid_size * grid_size
+    input_dim = 4 * grid_size * grid_size
     action_dim = 4
 
     if args.seeds:
@@ -165,11 +165,9 @@ def main():
     planner = SymbolicPlanner(
         env.cost_map,
         env.risk_map,
-        env.goal_pos,
         env.np_random,
         cost_weight=args.cost_weight,
         risk_weight=args.risk_weight,
-        goal_weight=args.goal_weight,
         revisit_penalty=args.revisit_penalty,
     )
 
@@ -183,7 +181,6 @@ def main():
     planner_weights = {
         "cost_weight": args.cost_weight,
         "risk_weight": args.risk_weight,
-        "goal_weight": args.goal_weight,
         "revisit_penalty": args.revisit_penalty,
     }
 
@@ -245,11 +242,9 @@ def main():
             planner = SymbolicPlanner(
                 env.cost_map,
                 env.risk_map,
-                env.goal_pos,
                 env.np_random,
                 cost_weight=args.cost_weight,
                 risk_weight=args.risk_weight,
-                goal_weight=args.goal_weight,
                 revisit_penalty=args.revisit_penalty,
             )
 

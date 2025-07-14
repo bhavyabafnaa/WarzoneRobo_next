@@ -90,10 +90,11 @@ def train_agent(
         planner_decisions = 0
         if planner_weights:
             planner = SymbolicPlanner(
-                env.cost_map, env.risk_map, env.goal_pos, env.np_random,
+                env.cost_map,
+                env.risk_map,
+                env.np_random,
                 cost_weight=planner_weights.get("cost_weight", 2.0),
                 risk_weight=planner_weights.get("risk_weight", 3.0),
-                goal_weight=planner_weights.get("goal_weight", 0.5),
                 revisit_penalty=planner_weights.get("revisit_penalty", 1.0),
             )
 
@@ -208,7 +209,7 @@ def train_agent(
         intrinsic_rewards.append(intrinsic_log)
         extrinsic_rewards.append(total_ext_reward)
         step_counts.append(step_count)
-        success_flags.append(int(env.agent_pos == env.goal_pos))
+        success_flags.append(0)
         if (planner_decisions + ppo_decisions) > 0:
             planner_percent = planner_decisions / (planner_decisions + ppo_decisions)
         else:
