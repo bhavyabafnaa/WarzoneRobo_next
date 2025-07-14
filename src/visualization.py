@@ -90,7 +90,10 @@ def plot_training_curves(
 
 
 def plot_heatmap_with_path(env, path, output_path: str | None = None):
-    """Display cost and risk maps with an overlayed agent path."""
+    """Display cost and risk maps with an overlayed agent path.
+
+    The goal position is no longer plotted.
+    """
     xs = [p[1] for p in path]
     ys = [p[0] for p in path]
 
@@ -102,7 +105,6 @@ def plot_heatmap_with_path(env, path, output_path: str | None = None):
     ):
         im = ax.imshow(data, origin="lower", cmap="viridis")
         ax.plot(xs, ys, color="red", marker="o")
-        ax.plot(env.goal_pos[1], env.goal_pos[0], marker="*", color="lime", markersize=10)
         ax.set_title(title)
         ax.set_xlim(-0.5, env.grid_size - 0.5)
         ax.set_ylim(-0.5, env.grid_size - 0.5)
