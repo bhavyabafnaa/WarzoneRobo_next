@@ -38,11 +38,25 @@ def plot_training_curves(
     fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(12, 4))
 
     reward_df = _stack_logs(reward_logs, "Value")
-    sns.lineplot(data=reward_df, x="Episode", y="Value", ax=ax1, ci=95, label="Extrinsic")
+    sns.lineplot(
+        data=reward_df,
+        x="Episode",
+        y="Value",
+        ax=ax1,
+        errorbar=("ci", 95),
+        label="Extrinsic",
+    )
 
     if intrinsic_logs is not None:
         intrinsic_df = _stack_logs(intrinsic_logs, "Value")
-        sns.lineplot(data=intrinsic_df, x="Episode", y="Value", ax=ax1, ci=95, label="Intrinsic")
+        sns.lineplot(
+            data=intrinsic_df,
+            x="Episode",
+            y="Value",
+            ax=ax1,
+            errorbar=("ci", 95),
+            label="Intrinsic",
+        )
 
     ax1.set_xlabel("Episode")
     ax1.set_ylabel("Reward")
@@ -53,7 +67,14 @@ def plot_training_curves(
     for flags in success_logs:
         success_rates.append(np.cumsum(flags) / (np.arange(len(flags)) + 1))
     success_df = _stack_logs(success_rates, "Value")
-    sns.lineplot(data=success_df, x="Episode", y="Value", ax=ax2, ci=95, color="green")
+    sns.lineplot(
+        data=success_df,
+        x="Episode",
+        y="Value",
+        ax=ax2,
+        errorbar=("ci", 95),
+        color="green",
+    )
     ax2.set_xlabel("Episode")
     ax2.set_ylabel("Success Rate")
     ax2.set_ylim(0, 1)
