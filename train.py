@@ -254,6 +254,7 @@ def main():
             )
 
         # PPO only
+        print("Training PPO Only")
         ppo_policy = PPOPolicy(input_dim, action_dim)
         opt_ppo = optim.Adam(ppo_policy.parameters(), lr=3e-4)
         rewards_ppo_only, intrinsic_ppo_only, _, _, paths_ppo_only, _, success_ppo_only, planner_rate_ppo_only = train_agent(
@@ -286,6 +287,7 @@ def main():
 
         # PPO + ICM
         if not args.disable_icm:
+            print("Training PPO + ICM")
             ppo_icm_policy = PPOPolicy(input_dim, action_dim)
             opt_icm_policy = optim.Adam(ppo_icm_policy.parameters(), lr=3e-4)
             rewards_ppo_icm, intrinsic_icm, _, _, paths_icm, _, success_icm, planner_rate_icm = train_agent(
@@ -318,6 +320,7 @@ def main():
             bench["PPO + ICM"].append(mean_b)
 
         # PPO + Pseudo-count exploration
+        print("Training PPO + PC")
         ppo_pc_policy = PPOPolicy(input_dim, action_dim)
         opt_pc_policy = optim.Adam(ppo_pc_policy.parameters(), lr=3e-4)
         pseudo = PseudoCountExploration()
@@ -352,6 +355,7 @@ def main():
 
         # PPO + ICM + Planner
         if not args.disable_icm and not args.disable_planner:
+            print("Training PPO + ICM + Planner")
             ppo_icm_planner_policy = PPOPolicy(input_dim, action_dim)
             opt_plan_policy = optim.Adam(ppo_icm_planner_policy.parameters(), lr=3e-4)
             rewards_ppo_icm_plan, intrinsic_plan, _, _, paths_plan, _, success_plan, planner_rate_plan = train_agent(
@@ -400,6 +404,7 @@ def main():
                 plot_heatmap_with_path(env, paths_plan[-1], output_path=heat_path)
 
         # Count-based exploration
+        print("Training PPO + count")
         ppo_count_policy = PPOPolicy(input_dim, action_dim)
         opt_count_policy = optim.Adam(ppo_count_policy.parameters(), lr=3e-4)
         rewards_ppo_count, intrinsic_count, _, _, paths_count, _, success_count, planner_rate_count = train_agent(
@@ -432,6 +437,7 @@ def main():
 
         # RND exploration
         if not args.disable_rnd:
+            print("Training PPO + RND")
             ppo_rnd_policy = PPOPolicy(input_dim, action_dim)
             opt_rnd_policy = optim.Adam(ppo_rnd_policy.parameters(), lr=3e-4)
             rnd = RNDModule(input_dim)

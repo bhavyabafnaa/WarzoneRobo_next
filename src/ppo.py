@@ -176,7 +176,7 @@ def train_agent(
         adv_tensor = torch.tensor(advantages, dtype=torch.float32)
         adv_tensor = (adv_tensor - adv_tensor.mean()) / (adv_tensor.std() + 1e-8)
 
-        obs_tensor = torch.tensor(obs_buf, dtype=torch.float32)
+        obs_tensor = torch.tensor(np.array(obs_buf), dtype=torch.float32)
         action_tensor = torch.tensor(action_buf)
         logprob_tensor = torch.stack(logprob_buf)
         val_tensor = torch.tensor(val_buf, dtype=torch.float32)
