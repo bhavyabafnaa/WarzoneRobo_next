@@ -4,7 +4,6 @@ from typing import List, Tuple
 import gym
 import matplotlib.pyplot as plt
 import numpy as np
-import torch
 from matplotlib import patches
 
 
@@ -15,12 +14,14 @@ class GridWorldICM:
         self,
         grid_size: int = 6,
         dynamic_risk: bool = False,
+        dynamic_cost: bool = False,
         reward_clip: Tuple[float, float] = (-10, 100),
         max_steps: int = 100,
         seed: int | None = None,
     ) -> None:
         self.grid_size = grid_size
         self.dynamic_risk = dynamic_risk
+        self.dynamic_cost = dynamic_cost
         self.reward_clip = reward_clip
         self.max_steps = max_steps
         self.seed(seed)
@@ -81,6 +82,26 @@ class GridWorldICM:
         )
 
 
+    def update_cost_map(self) -> None:
+        """Apply decay and increase costs around mines when enabled."""
+        if not getattr(self, "dynamic_cost", False):
+            return
+
+        # decay existing costs slightly each step
+        self.cost_map *= 0.98
+
+        # raise costs near mines to discourage paths through them
+        mine_indices = np.argwhere(self.mine_map)
+        for mx, my in mine_indices:
+            self.cost_map[mx, my] = min(1.0, self.cost_map[mx, my] + 0.5)
+            for dx, dy in [(-1, 0), (1, 0), (0, -1), (0, 1)]:
+                nx, ny = mx + dx, my + dy
+                if 0 <= nx < self.grid_size and 0 <= ny < self.grid_size:
+                    self.cost_map[nx, ny] = min(
+                        1.0, self.cost_map[nx, ny] + 0.25
+                    )
+
+
     def step(self, action: int, terrain_decay: float = 1.0):
         x, y = self.agent_pos
         if action == 0 and x > 0:
@@ -111,6 +132,7 @@ class GridWorldICM:
                             1.0, self.risk_map[nx, ny] + 0.25
                         )
 
+        self.update_cost_map()
         cost = np.clip(self.cost_map[x][y], 0, 1)
         risk = np.clip(self.risk_map[x][y], 0, 1)
 
@@ -222,6 +244,7 @@ def visualize_paths_on_benchmark_maps(
     save: bool = False,
 ):
     from matplotlib.collections import LineCollection
+    import torch
 
     grid_rows = int(np.ceil(num_maps / grid_cols))
     fig, axs = plt.subplots(grid_rows, grid_cols, figsize=(grid_cols * 4, grid_rows * 4))
@@ -307,6 +330,7 @@ def evaluate_on_benchmarks(
     map_folder: str = "maps/",
     num_maps: int = 10,
 ) -> Tuple[float, float]:
+    import torch
     rewards = []
     for i in range(num_maps):
         map_path = f"{map_folder}/map_{i:02d}.npz"

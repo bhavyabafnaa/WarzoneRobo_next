@@ -60,6 +60,7 @@ def parse_args():
     parser.add_argument("--goal_weight", type=float, default=0.5)
     parser.add_argument("--revisit_penalty", type=float, default=1.0)
     parser.add_argument("--dynamic_risk", action="store_true", help="Enable dynamic risk in env")
+    parser.add_argument("--dynamic_cost", action="store_true", help="Enable dynamic cost in env")
     parser.add_argument("--add_noise", action="store_true", help="Add noise when resetting maps")
     parser.add_argument("--seed", type=int, default=42, help="Random seed")
     parser.add_argument(
@@ -159,6 +160,7 @@ def main():
     env = GridWorldICM(
         grid_size=grid_size,
         dynamic_risk=args.dynamic_risk,
+        dynamic_cost=args.dynamic_cost,
         seed=seeds[0],
     )
     icm = ICMModule(input_dim, action_dim)
