@@ -1,8 +1,8 @@
 grid_size: 8
 num_episodes: 200
-cost_weight: 2.0
+cost_weight: 3.0
 risk_weight: 3.0
-revisit_penalty: 1.0
+revisit_penalty: 2.0
 dynamic_risk: false
 dynamic_cost: false
 add_noise: false
