@@ -111,7 +111,21 @@ def train_agent(
 
         while not done:
             state_tensor = torch.tensor(obs, dtype=torch.float32).unsqueeze(0)
-            use_planner_now = use_planner and (env.risk_map[env.agent_pos[0]][env.agent_pos[1]] > 0.5)
+            risk = env.risk_map[env.agent_pos[0]][env.agent_pos[1]]
+            if risk > 0.7:
+                planner.risk_weight = 5.0
+                planner.cost_weight = 1.0
+                use_planner_now = use_planner
+            elif risk > 0.5:
+                planner.risk_weight = 3.0
+                planner.cost_weight = 2.0
+                use_planner_now = use_planner
+            elif risk > 0.2:
+                planner.risk_weight = 1.0
+                planner.cost_weight = 3.0
+                use_planner_now = use_planner
+            else:
+                use_planner_now = False
             used_planner = False
             if use_planner_now:
                 action = planner.get_safe_subgoal(env.agent_pos)

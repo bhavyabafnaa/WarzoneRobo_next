@@ -26,6 +26,8 @@ class GridWorldICM:
         self.reward_clip = reward_clip
         self.max_steps = max_steps
         self.survival_reward = survival_reward
+        if seed is None:
+            seed = 0
         self.seed(seed)
         self.reset()
 
