@@ -25,5 +25,9 @@ class RNDModule(nn.Module):
         with torch.no_grad():
             target_output = self.target(state)
         pred_output = self.predictor(state)
-        intrinsic_reward = F.mse_loss(pred_output, target_output, reduction="none").mean(dim=1)
+        intrinsic_reward = F.mse_loss(
+            pred_output,
+            target_output,
+            reduction="none").mean(
+            dim=1)
         return intrinsic_reward, pred_output, target_output

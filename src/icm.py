@@ -28,7 +28,11 @@ class ICMModule(nn.Module):
             nn.Linear(feature_dim, feature_dim),
         )
 
-    def forward(self, state: torch.Tensor, next_state: torch.Tensor, action: torch.Tensor):
+    def forward(
+            self,
+            state: torch.Tensor,
+            next_state: torch.Tensor,
+            action: torch.Tensor):
         phi_s = self.encoder(state)
         phi_s_next = self.encoder(next_state)
 
@@ -41,7 +45,12 @@ class ICMModule(nn.Module):
         pred_phi_next = self.forward_model(forward_input)
         forward_loss = F.mse_loss(pred_phi_next, phi_s_next)
 
-        curiosity = F.mse_loss(pred_phi_next, phi_s_next, reduction="none").mean(dim=1)
-        curiosity = (curiosity - curiosity.min()) / (curiosity.max() - curiosity.min() + 1e-8)
+        curiosity = F.mse_loss(
+            pred_phi_next,
+            phi_s_next,
+            reduction="none").mean(
+            dim=1)
+        curiosity = (curiosity - curiosity.min()) / \
+            (curiosity.max() - curiosity.min() + 1e-8)
 
         return curiosity, forward_loss, inverse_loss

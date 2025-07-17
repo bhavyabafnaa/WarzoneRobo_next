@@ -49,10 +49,14 @@ class GridWorldICM:
         else:
             self.cost_map = np.ones((self.grid_size, self.grid_size)) * 0.3
             self.risk_map = np.zeros((self.grid_size, self.grid_size))
-            self.terrain_map = np.full((self.grid_size, self.grid_size), "normal")
-            self.mine_map = self.np_random.random((self.grid_size, self.grid_size)) < 0.05
-            self.terrain_map[self.np_random.random((self.grid_size, self.grid_size)) < 0.15] = "mud"
-            self.terrain_map[self.np_random.random((self.grid_size, self.grid_size)) < 0.15] = "water"
+            self.terrain_map = np.full(
+                (self.grid_size, self.grid_size), "normal")
+            self.mine_map = self.np_random.random(
+                (self.grid_size, self.grid_size)) < 0.05
+            self.terrain_map[self.np_random.random(
+                (self.grid_size, self.grid_size)) < 0.15] = "mud"
+            self.terrain_map[self.np_random.random(
+                (self.grid_size, self.grid_size)) < 0.15] = "water"
             self.enemy_positions = [[self.grid_size // 2, self.grid_size // 2]]
 
         if add_noise:
@@ -85,7 +89,6 @@ class GridWorldICM:
             enemy_positions=np.array(self.enemy_positions),
         )
 
-
     def update_cost_map(self) -> None:
         """Apply decay and increase costs around mines when enabled."""
         if not getattr(self, "dynamic_cost", False):
@@ -104,7 +107,6 @@ class GridWorldICM:
                     self.cost_map[nx, ny] = min(
                         1.0, self.cost_map[nx, ny] + 0.25
                     )
-
 
     def step(self, action: int, terrain_decay: float = 1.0):
         x, y = self.agent_pos
@@ -193,7 +195,9 @@ class GridWorldICM:
     def render(self) -> np.ndarray:
         import matplotlib
         matplotlib.use("Agg")
-        from matplotlib.backends.backend_agg import FigureCanvasAgg as FigureCanvas
+        from matplotlib.backends.backend_agg import (
+            FigureCanvasAgg as FigureCanvas,
+        )
 
         fig = plt.figure(figsize=(5, 5))
         ax = fig.add_subplot(111)
@@ -263,7 +267,9 @@ def visualize_paths_on_benchmark_maps(
     import torch
 
     grid_rows = int(np.ceil(num_maps / grid_cols))
-    fig, axs = plt.subplots(grid_rows, grid_cols, figsize=(grid_cols * 4, grid_rows * 4))
+    fig, axs = plt.subplots(
+        grid_rows, grid_cols, figsize=(
+            grid_cols * 4, grid_rows * 4))
     axs = axs.flatten()
 
     for i in range(num_maps):
@@ -290,7 +296,12 @@ def visualize_paths_on_benchmark_maps(
         lc.set_array(rewards_arr)
 
         ax = axs[i]
-        ax.imshow(np.zeros((env.grid_size, env.grid_size)), cmap="Greys", origin="lower")
+        ax.imshow(
+            np.zeros(
+                (env.grid_size,
+                 env.grid_size)),
+            cmap="Greys",
+            origin="lower")
         ax.add_collection(lc)
         ax.set_title(f"Map {i}")
         ax.axis("off")
@@ -373,16 +384,24 @@ def plot_model_performance(
     std_devs = []
 
     for policy in models:
-        mean_r, std_r = evaluate_on_benchmarks(env, policy, map_folder, num_maps)
+        mean_r, std_r = evaluate_on_benchmarks(
+            env, policy, map_folder, num_maps)
         avg_rewards.append(mean_r)
         std_devs.append(std_r)
 
     x = np.arange(len(model_names))
     plt.figure(figsize=(8, 5))
-    plt.bar(x, avg_rewards, yerr=std_devs, capsize=5, color=["gray", "skyblue", "green"])
+    plt.bar(
+        x,
+        avg_rewards,
+        yerr=std_devs,
+        capsize=5,
+        color=[
+            "gray",
+            "skyblue",
+            "green"])
     plt.xticks(x, model_names)
     plt.ylabel("Average Reward")
     plt.title("Model Performance on Benchmark Maps")
     plt.grid(axis="y", linestyle="--", alpha=0.5)
     plt.show()
-

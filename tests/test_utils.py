@@ -1,4 +1,3 @@
-import numpy as np
 from src.utils import count_intrinsic_spikes
 
 
@@ -10,4 +9,3 @@ def test_count_intrinsic_spikes_basic():
 
 def test_count_intrinsic_spikes_empty():
     assert count_intrinsic_spikes([]) == 0
-

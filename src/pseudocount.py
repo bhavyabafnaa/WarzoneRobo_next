@@ -1,6 +1,7 @@
 from collections import defaultdict
 import numpy as np
 
+
 class PseudoCountExploration:
     """Simple hashed pseudo-count exploration bonus.
 

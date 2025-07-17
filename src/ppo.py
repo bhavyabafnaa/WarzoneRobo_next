@@ -32,7 +32,11 @@ class PPOPolicy(nn.Module):
         return action.item(), dist.log_prob(action), value
 
 
-def compute_gae(rewards: List[float], values: List[float], gamma: float = 0.99, lam: float = 0.95):
+def compute_gae(
+        rewards: List[float],
+        values: List[float],
+        gamma: float = 0.99,
+        lam: float = 0.95):
     advantages: List[float] = []
     gae = 0
     values = values + [0]
@@ -99,14 +103,19 @@ def train_agent(
         env.save_map(benchmark_map)
 
     for episode in range(num_episodes):
-        obs, _ = env.reset(seed=seed, load_map_path=benchmark_map, add_noise=add_noise)
+        obs, _ = env.reset(
+            seed=seed, load_map_path=benchmark_map, add_noise=add_noise)
 
         done = False
         total_ext_reward = 0
         step_count = 0
         info = {}
         terrain_decay = max(0.1, 1 - (episode / 1000))
-        obs_buf, action_buf, logprob_buf, val_buf, reward_buf = [], [], [], [], []
+        obs_buf = []
+        action_buf = []
+        logprob_buf = []
+        val_buf = []
+        reward_buf = []
         agent_path = []
         planner_decisions = 0
         if planner_weights is not None:
@@ -127,9 +136,9 @@ def train_agent(
 
         ppo_decisions = 0
         intrinsic_log = 0
-        extrinsic_log = 0
         visit_count = np.zeros((env.grid_size, env.grid_size))
-        planner_bonus = max(0.1, initial_bonus * (1 - (episode / num_episodes)))
+        planner_bonus = max(0.1, initial_bonus *
+                            (1 - (episode / num_episodes)))
 
         if final_beta is not None:
             decay_end = max(1, int(num_episodes * 2 / 3))
@@ -173,10 +182,12 @@ def train_agent(
             visit_count[x][y] += 1
             count_reward = 1.0 / np.sqrt(visit_count[x][y])
 
-            if used_planner and env.risk_map[env.agent_pos[0]][env.agent_pos[1]] < 0.5:
+            if used_planner and env.risk_map[env.agent_pos[0]
+                                             ][env.agent_pos[1]] < 0.5:
                 ext_reward += planner_bonus
 
-            next_tensor = torch.tensor(next_obs, dtype=torch.float32).unsqueeze(0)
+            next_tensor = torch.tensor(
+                next_obs, dtype=torch.float32).unsqueeze(0)
             action_tensor = torch.tensor([action])
 
             if use_icm == "count":
@@ -195,7 +206,8 @@ def train_agent(
                 total_reward = ext_reward + beta_val * p_bonus
                 curiosity = torch.tensor([p_bonus])
             elif use_icm is True:
-                curiosity, f_loss, i_loss = icm(state_tensor, next_tensor, action_tensor)
+                curiosity, f_loss, i_loss = icm(
+                    state_tensor, next_tensor, action_tensor)
                 total_reward = ext_reward + beta_val * curiosity.item()
                 icm_loss = f_loss + i_loss
                 optimizer_icm.zero_grad()
@@ -222,17 +234,20 @@ def train_agent(
             val_buf.append(value.item())
             reward_buf.append(total_reward)
 
-        reward_buf = [(r - min(reward_buf)) / (max(reward_buf) - min(reward_buf) + 1e-8) for r in reward_buf]
+        reward_range = max(reward_buf) - min(reward_buf) + 1e-8
+        reward_buf = [
+            (r - min(reward_buf)) / reward_range
+            for r in reward_buf
+        ]
         advantages = compute_gae(reward_buf, val_buf, gamma=gamma, lam=0.95)
 
         adv_tensor = torch.tensor(advantages, dtype=torch.float32)
-        adv_tensor = (adv_tensor - adv_tensor.mean()) / (adv_tensor.std() + 1e-8)
+        adv_tensor = (adv_tensor - adv_tensor.mean()) / \
+            (adv_tensor.std() + 1e-8)
 
         obs_tensor = torch.tensor(np.array(obs_buf), dtype=torch.float32)
         action_tensor = torch.tensor(action_buf)
         logprob_tensor = torch.stack(logprob_buf)
-        val_tensor = torch.tensor(val_buf, dtype=torch.float32)
-
         logits, new_vals = policy(obs_tensor)
         dist = torch.distributions.Categorical(logits=logits)
         new_logprob = dist.log_prob(action_tensor)
@@ -243,7 +258,9 @@ def train_agent(
         surr2 = torch.clamp(ratio, 1 - 0.2, 1 + 0.2) * adv_tensor
         policy_loss = -torch.min(surr1, surr2).mean()
 
-        value_loss = F.mse_loss(new_vals.squeeze(), torch.tensor(reward_buf, dtype=torch.float32))
+        value_loss = F.mse_loss(
+            new_vals.squeeze(), torch.tensor(
+                reward_buf, dtype=torch.float32))
         entropy_loss = -0.01 * entropy.mean()
 
         total_loss = policy_loss + 0.5 * value_loss + entropy_loss
@@ -263,7 +280,8 @@ def train_agent(
         survived = step_count >= env.max_steps and not info.get("dead", False)
         success_flags.append(1 if survived else 0)
         if (planner_decisions + ppo_decisions) > 0:
-            planner_percent = planner_decisions / (planner_decisions + ppo_decisions)
+            planner_percent = planner_decisions / \
+                (planner_decisions + ppo_decisions)
         else:
             planner_percent = 0
         planner_usage_rate.append(planner_percent)
@@ -293,4 +311,13 @@ def train_agent(
             f"Success: {success_rate * 100:.1f}%"
         )
 
-    return reward_log, intrinsic_rewards, extrinsic_rewards, planner_usage, paths_log, step_counts, success_flags, planner_usage_rate
+    return (
+        reward_log,
+        intrinsic_rewards,
+        extrinsic_rewards,
+        planner_usage,
+        paths_log,
+        step_counts,
+        success_flags,
+        planner_usage_rate,
+    )

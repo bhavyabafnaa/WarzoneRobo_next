@@ -4,6 +4,7 @@ from typing import Sequence
 import numpy as np
 import torch
 
+
 def save_model(policy, path, icm=None, rnd=None):
     """Save policy and optional exploration modules."""
     os.makedirs(os.path.dirname(path), exist_ok=True)
@@ -15,7 +16,14 @@ def save_model(policy, path, icm=None, rnd=None):
     torch.save(checkpoint, path)
 
 
-def load_model(policy_class, input_dim, action_dim, path, icm_class=None, rnd_class=None, device=None):
+def load_model(
+        policy_class,
+        input_dim,
+        action_dim,
+        path,
+        icm_class=None,
+        rnd_class=None,
+        device=None):
     """Load policy and exploration modules from checkpoint."""
     checkpoint = torch.load(path, map_location=device)
     policy = policy_class(input_dim, action_dim)
@@ -31,7 +39,9 @@ def load_model(policy_class, input_dim, action_dim, path, icm_class=None, rnd_cl
     return policy, icm, rnd
 
 
-def count_intrinsic_spikes(values: Sequence[float], threshold_factor: float = 1.5) -> int:
+def count_intrinsic_spikes(
+        values: Sequence[float],
+        threshold_factor: float = 1.5) -> int:
     """Return the number of intrinsic reward spikes.
 
     A spike is any value exceeding ``threshold_factor`` times the mean of
@@ -44,4 +54,3 @@ def count_intrinsic_spikes(values: Sequence[float], threshold_factor: float = 1.
     arr = np.asarray(list(values), dtype=float)
     threshold = threshold_factor * arr.mean()
     return int(np.sum(arr > threshold))
-
