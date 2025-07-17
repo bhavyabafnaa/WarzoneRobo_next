@@ -3,7 +3,8 @@ num_episodes: 200
 cost_weight: 3.0
 risk_weight: 3.0
 revisit_penalty: 2.0
-dynamic_risk: false
-dynamic_cost: false
+survival_reward: 0.05
+dynamic_risk: true
+dynamic_cost: true
 add_noise: false
 seed: 42  # used for numpy and torch; enables deterministic CUDNN

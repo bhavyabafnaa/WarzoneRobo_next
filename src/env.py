@@ -17,7 +17,7 @@ class GridWorldICM:
         dynamic_cost: bool = False,
         reward_clip: Tuple[float, float] = (-10, 100),
         max_steps: int = 100,
-        survival_reward: float = 0.0,
+        survival_reward: float = 0.05,
         seed: int | None = None,
     ) -> None:
         self.grid_size = grid_size
