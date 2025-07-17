@@ -63,6 +63,7 @@ def train_agent(
     add_noise: bool = False,
     logger=None,
     initial_bonus: float = 0.5,
+    reset_env: bool = True,
 ):
     """Train a PPO agent with optional curiosity and planning.
 
@@ -70,6 +71,13 @@ def train_agent(
     When ``final_beta`` is provided its value linearly decays from ``beta`` to
     ``final_beta`` over the first two thirds of training episodes and then
     remains constant for the rest of training.
+
+    Parameters
+    ----------
+    reset_env : bool, optional
+        If ``True`` the environment is reset and its map saved before
+        training begins. Set to ``False`` to use the environment state and
+        maps provided by the caller.
     """
 
     reward_log = []
@@ -86,8 +94,9 @@ def train_agent(
 
     benchmark_map = "maps/map_00.npz"
     os.makedirs(os.path.dirname(benchmark_map), exist_ok=True)
-    env.reset(seed=seed)
-    env.save_map(benchmark_map)
+    if reset_env:
+        env.reset(seed=seed)
+        env.save_map(benchmark_map)
 
     for episode in range(num_episodes):
         obs, _ = env.reset(seed=seed, load_map_path=benchmark_map, add_noise=add_noise)

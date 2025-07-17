@@ -32,6 +32,7 @@ def test_short_training_loop(tmp_path):
         use_icm=False,
         use_planner=False,
         num_episodes=1,
+        
     )
 
 
@@ -92,6 +93,7 @@ def test_success_flag_survival(tmp_path):
         use_icm=False,
         use_planner=False,
         num_episodes=1,
+        reset_env=False,
     )
 
     _, _, _, _, _, _, success_flags, _ = metrics
