@@ -1,4 +1,6 @@
 import os
+for d in ["videos", "results", "plots", "figures", "checkpoints", "logs", "outputs"]:
+    os.makedirs(d, exist_ok=True)
 import argparse
 import yaml
 import torch
