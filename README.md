@@ -10,20 +10,20 @@ Unlike a typical navigation task with a goal location, the agent's objective her
 * Combine RL with a symbolic planner to reduce search space and guide decision making.
 
 ## Getting started
-The repository includes a Jupyter notebook named `RLcode` containing the training and evaluation code. You can run the notebook interactively or execute its cells as a script.
+The repository includes a Jupyter notebook named `demo.ipynb` that showcases the environment and training utilities. You can run the notebook interactively or execute its cells as a script.
 
 ```bash
 # Install dependencies
 pip install -r requirements.txt
 
 # Launch Jupyter and open the notebook
-jupyter notebook RLcode
+jupyter notebook demo.ipynb
 ```
 
 Alternatively, you can run the notebook from the command line using `jupyter nbconvert`:
 
 ```bash
-jupyter nbconvert --to notebook --execute RLcode --output output.ipynb
+jupyter nbconvert --to notebook --execute demo.ipynb --output output.ipynb
 ```
 
 ### Command line training
@@ -78,7 +78,7 @@ are marked with `*` in the table and those below `0.01` with `**`.
 * **Planner** – A symbolic planner computes heuristic paths that the agent can follow, helping integrate classical planning with learned policies.
 * A decaying planner bonus starts high and linearly decreases each episode so the agent transitions from planner guidance to independent action.
 
-The notebook experiments with different combinations of these components to evaluate their effect on success rate and exploration.
+The demo notebook experiments with different combinations of these components to evaluate their effect on success rate and exploration.
 
 ## Environment features
 The grid world includes optional *dynamic risk* and *dynamic cost* modes. When enabled, hazard locations and traversal costs change over time so agents cannot memorize a single map. A small `survival_reward` of `0.05` is given each step. Benchmark maps can be exported with `export_benchmark_maps` and loaded later for evaluation. The environment's `render()` method returns RGB frames so that `render_episode_video` can produce GIFs of agent behavior.
