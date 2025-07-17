@@ -150,6 +150,10 @@ def main():
     if args.plot_dir:
         os.makedirs(args.plot_dir, exist_ok=True)
 
+    # Ensure directories for various output artifacts exist
+    os.makedirs("checkpoints", exist_ok=True)
+    os.makedirs("videos", exist_ok=True)
+
     # Set random seeds for reproducibility
     np.random.seed(args.seed)
     torch.manual_seed(args.seed)
