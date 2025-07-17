@@ -1,4 +1,3 @@
-import os
 from src.env import GridWorldICM
 from src.ppo import PPOPolicy
 from src.visualization import render_episode_video

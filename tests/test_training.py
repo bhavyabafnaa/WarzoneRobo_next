@@ -1,5 +1,4 @@
 import os
-import torch
 from torch import optim
 
 from src.env import GridWorldICM
@@ -32,7 +31,7 @@ def test_short_training_loop(tmp_path):
         use_icm=False,
         use_planner=False,
         num_episodes=1,
-        
+
     )
 
 

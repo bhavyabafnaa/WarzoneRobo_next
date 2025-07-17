@@ -13,9 +13,8 @@ def _stack_logs(logs: list[list[float]] | None, name: str) -> pd.DataFrame:
         return pd.DataFrame()
     frames = []
     for idx, log in enumerate(logs):
-        frames.append(
-            pd.DataFrame({"Episode": np.arange(len(log)), name: log, "Seed": idx})
-        )
+        frames.append(pd.DataFrame(
+            {"Episode": np.arange(len(log)), name: log, "Seed": idx}))
     return pd.concat(frames, ignore_index=True)
 
 
@@ -29,7 +28,8 @@ def plot_training_curves(
 
     if reward_logs and not isinstance(reward_logs[0], (list, np.ndarray)):
         reward_logs = [reward_logs]  # backwards compatibility
-    if intrinsic_logs and intrinsic_logs and not isinstance(intrinsic_logs[0], (list, np.ndarray)):
+    if intrinsic_logs and intrinsic_logs and not isinstance(
+            intrinsic_logs[0], (list, np.ndarray)):
         intrinsic_logs = [intrinsic_logs]
     if success_logs and not isinstance(success_logs[0], (list, np.ndarray)):
         success_logs = [success_logs]
@@ -162,7 +162,12 @@ def generate_results_table(df: pd.DataFrame, output_path: str) -> None:
             f.write(latex)
 
 
-def render_episode_video(env, policy, output_path: str, max_steps: int = 100, seed: int | None = None) -> None:
+def render_episode_video(
+        env,
+        policy,
+        output_path: str,
+        max_steps: int = 100,
+        seed: int | None = None) -> None:
     """Run one episode and save a GIF of the agent interacting with the env."""
     obs, _ = env.reset(seed=seed)
     frames = [env.render()]
