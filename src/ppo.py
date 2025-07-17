@@ -95,6 +95,7 @@ def train_agent(
         done = False
         total_ext_reward = 0
         step_count = 0
+        info = {}
         terrain_decay = max(0.1, 1 - (episode / 1000))
         obs_buf, action_buf, logprob_buf, val_buf, reward_buf = [], [], [], [], []
         agent_path = []
@@ -156,7 +157,9 @@ def train_agent(
                 action, logprob, value = policy.act(state_tensor)
                 ppo_decisions += 1
 
-            next_obs, ext_reward, done, _, _ = env.step(action, terrain_decay=terrain_decay)
+            next_obs, ext_reward, done, _, info = env.step(
+                action, terrain_decay=terrain_decay
+            )
             x, y = env.agent_pos
             visit_count[x][y] += 1
             count_reward = 1.0 / np.sqrt(visit_count[x][y])
@@ -248,7 +251,8 @@ def train_agent(
         intrinsic_rewards.append(intrinsic_log)
         extrinsic_rewards.append(total_ext_reward)
         step_counts.append(step_count)
-        success_flags.append(0)
+        survived = step_count >= env.max_steps and not info.get("dead", False)
+        success_flags.append(1 if survived else 0)
         if (planner_decisions + ppo_decisions) > 0:
             planner_percent = planner_decisions / (planner_decisions + ppo_decisions)
         else:

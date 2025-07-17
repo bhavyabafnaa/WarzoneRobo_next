@@ -7,6 +7,7 @@ from src.icm import ICMModule
 from src.planner import SymbolicPlanner
 from src.ppo import PPOPolicy, train_agent
 import yaml
+import numpy as np
 
 
 def test_short_training_loop(tmp_path):
@@ -63,3 +64,35 @@ def test_training_one_episode_metrics(tmp_path):
 
     rewards, _, _, _, _, _, success_flags, _ = metrics
     assert len(rewards) == 1
+
+
+def test_success_flag_survival(tmp_path):
+    env = GridWorldICM(grid_size=2, max_steps=2)
+    env.cost_map = np.zeros((2, 2))
+    env.risk_map = np.zeros((2, 2))
+    env.mine_map = np.zeros((2, 2), dtype=bool)
+    env.enemy_positions = []
+    os.makedirs("maps", exist_ok=True)
+    env.save_map("maps/map_00.npz")
+
+    input_dim = 4 * env.grid_size * env.grid_size
+    action_dim = 4
+    policy = PPOPolicy(input_dim, action_dim)
+    icm = ICMModule(input_dim, action_dim)
+    planner = SymbolicPlanner(env.cost_map, env.risk_map, env.np_random)
+    opt = optim.Adam(policy.parameters(), lr=1e-3)
+
+    metrics = train_agent(
+        env,
+        policy,
+        icm,
+        planner,
+        opt,
+        opt,
+        use_icm=False,
+        use_planner=False,
+        num_episodes=1,
+    )
+
+    _, _, _, _, _, _, success_flags, _ = metrics
+    assert success_flags == [1]

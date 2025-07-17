@@ -83,6 +83,13 @@ The notebook experiments with different combinations of these components to eval
 ## Environment features
 The grid world includes optional *dynamic risk* and *dynamic cost* modes. With dynamic risk enabled, values around moving enemies rise and decay over time. Dynamic cost similarly adjusts the traversal cost map, increasing values near mines while slowly decaying elsewhere. An optional `survival_reward` adds a small per-step bonus when enabled. Benchmark maps can be exported with `export_benchmark_maps` and loaded later for evaluation. The environment's `render()` method returns RGB frames so that `render_episode_video` can produce GIFs of agent behavior.
 
+## Success metric
+An episode is marked as a **success** only when the agent survives for all
+`max_steps` without hitting a mine or colliding with an enemy. Training logs store
+these binary flags and plots display the running success rate next to the reward
+curve. Result tables also report average success across seeds so improvements in
+reward cannot mask agents that simply die early.
+
 ## Running Experiments
 Train all models from a configuration file:
 ```bash

@@ -149,12 +149,24 @@ class GridWorldICM:
 
         if self.mine_map[x][y]:
             reward -= 2
-            return self._get_obs(), self._clip_reward(reward), True, False, {}
+            return (
+                self._get_obs(),
+                self._clip_reward(reward),
+                True,
+                False,
+                {"dead": True},
+            )
 
         for ex, ey in self.enemy_positions:
             if [x, y] == [ex, ey]:
                 reward -= 3
-                return self._get_obs(), self._clip_reward(reward), True, False, {}
+                return (
+                    self._get_obs(),
+                    self._clip_reward(reward),
+                    True,
+                    False,
+                    {"dead": True},
+                )
 
         done = self.steps >= self.max_steps
 
