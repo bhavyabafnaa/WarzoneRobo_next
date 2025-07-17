@@ -9,3 +9,4 @@ imageio
 scipy
 wandb
 tensorboard
+pytest
