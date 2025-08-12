@@ -14,6 +14,7 @@ dynamic_cost: true
 add_noise: false
 seed: 42  # used for numpy and torch; enables deterministic CUDNN
 tau: 0.6
+kappa: 2.0
 H: 8
 waypoint_bonus: 0.05
 K: 10
