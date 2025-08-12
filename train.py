@@ -324,6 +324,7 @@ def main():
                 "violation_flags": [],
                 "first_violation_episode": [],
                 "coverage": [],
+                "min_dist": [],
             },
             "PPO + ICM": {
                 "rewards": [],
@@ -335,6 +336,7 @@ def main():
                 "violation_flags": [],
                 "first_violation_episode": [],
                 "coverage": [],
+                "min_dist": [],
             },
             "PPO + ICM + Planner": {
                 "rewards": [],
@@ -346,6 +348,7 @@ def main():
                 "violation_flags": [],
                 "first_violation_episode": [],
                 "coverage": [],
+                "min_dist": [],
             },
             "PPO + count": {
                 "rewards": [],
@@ -357,6 +360,7 @@ def main():
                 "violation_flags": [],
                 "first_violation_episode": [],
                 "coverage": [],
+                "min_dist": [],
             },
             "PPO + RND": {
                 "rewards": [],
@@ -368,6 +372,7 @@ def main():
                 "violation_flags": [],
                 "first_violation_episode": [],
                 "coverage": [],
+                "min_dist": [],
             },
             "PPO + PC": {
                 "rewards": [],
@@ -379,6 +384,7 @@ def main():
                 "violation_flags": [],
                 "first_violation_episode": [],
                 "coverage": [],
+                "min_dist": [],
             },
         }
         bench = {
@@ -466,6 +472,7 @@ def main():
                 mask_counts_ppo_only,
                 mask_rates_ppo_only,
                 coverage_ppo_only,
+                min_dists_ppo_only,
                 episode_costs_ppo_only,
                 violation_flags_ppo_only,
                 first_violation_episode_ppo_only,
@@ -508,6 +515,8 @@ def main():
                 float(np.mean(planner_rate_ppo_only)))
             metrics["PPO Only"]["mask_rate"].append(
                 float(np.mean(mask_rates_ppo_only)))
+            metrics["PPO Only"]["min_dist"].append(
+                float(np.mean(min_dists_ppo_only)))
             metrics["PPO Only"]["spikes"].append(
                 count_intrinsic_spikes(intrinsic_ppo_only))
             metrics["PPO Only"]["episode_costs"].append(
@@ -559,6 +568,7 @@ def main():
                 mask_counts_icm,
                 mask_rates_icm,
                 coverage_icm,
+                min_dists_icm,
                 episode_costs_icm,
                 violation_flags_icm,
                 first_violation_episode_icm,
@@ -602,6 +612,8 @@ def main():
                     float(np.mean(planner_rate_icm)))
                 metrics["PPO + ICM"]["mask_rate"].append(
                     float(np.mean(mask_rates_icm)))
+                metrics["PPO + ICM"]["min_dist"].append(
+                    float(np.mean(min_dists_icm)))
                 metrics["PPO + ICM"]["spikes"].append(
                     count_intrinsic_spikes(intrinsic_icm))
                 metrics["PPO + ICM"]["episode_costs"].append(
@@ -654,6 +666,7 @@ def main():
                 mask_counts_pc,
                 mask_rates_pc,
                 coverage_pc,
+                min_dists_pc,
                 episode_costs_pc,
                 violation_flags_pc,
                 first_violation_episode_pc,
@@ -695,6 +708,8 @@ def main():
                 float(np.mean(planner_rate_pc)))
             metrics["PPO + PC"]["mask_rate"].append(
                 float(np.mean(mask_rates_pc)))
+            metrics["PPO + PC"]["min_dist"].append(
+                float(np.mean(min_dists_pc)))
             metrics["PPO + PC"]["spikes"].append(
                 count_intrinsic_spikes(intrinsic_pc))
             metrics["PPO + PC"]["episode_costs"].append(
@@ -746,6 +761,7 @@ def main():
                     mask_counts_icm_plan,
                     mask_rates_icm_plan,
                     coverage_icm_plan,
+                    min_dists_icm_plan,
                     episode_costs_icm_plan,
                     violation_flags_icm_plan,
                     first_violation_episode_icm_plan,
@@ -789,6 +805,8 @@ def main():
                     float(np.mean(planner_rate_plan)))
                 metrics["PPO + ICM + Planner"]["mask_rate"].append(
                     float(np.mean(mask_rates_icm_plan)))
+                metrics["PPO + ICM + Planner"]["min_dist"].append(
+                    float(np.mean(min_dists_icm_plan)))
                 metrics["PPO + ICM + Planner"]["spikes"].append(
                     count_intrinsic_spikes(intrinsic_plan))
                 metrics["PPO + ICM + Planner"]["episode_costs"].append(
@@ -859,6 +877,7 @@ def main():
                 mask_counts_count,
                 mask_rates_count,
                 coverage_count,
+                min_dists_count,
                 episode_costs_count,
                 violation_flags_count,
                 first_violation_episode_count,
@@ -903,6 +922,8 @@ def main():
                 float(np.mean(planner_rate_count)))
             metrics["PPO + count"]["mask_rate"].append(
                 float(np.mean(mask_rates_count)))
+            metrics["PPO + count"]["min_dist"].append(
+                float(np.mean(min_dists_count)))
             metrics["PPO + count"]["spikes"].append(
                 count_intrinsic_spikes(intrinsic_count))
             metrics["PPO + count"]["episode_costs"].append(
@@ -956,6 +977,7 @@ def main():
                     mask_counts_rnd,
                     mask_rates_rnd,
                     coverage_rnd,
+                    min_dists_rnd,
                     episode_costs_rnd,
                     violation_flags_rnd,
                     first_violation_episode_rnd,
@@ -1000,6 +1022,8 @@ def main():
                     float(np.mean(planner_rate_rnd)))
                 metrics["PPO + RND"]["mask_rate"].append(
                     float(np.mean(mask_rates_rnd)))
+                metrics["PPO + RND"]["min_dist"].append(
+                    float(np.mean(min_dists_rnd)))
                 metrics["PPO + RND"]["spikes"].append(
                     count_intrinsic_spikes(intrinsic_rnd))
                 metrics["PPO + RND"]["episode_costs"].append(
@@ -1121,6 +1145,13 @@ def main():
                 if len(coverage_vals) > 1
                 else 0.0
             )
+            min_dist_vals = data["min_dist"]
+            min_dist_mean = float(np.mean(min_dist_vals)) if min_dist_vals else 0.0
+            min_dist_ci = (
+                1.96 * float(np.std(min_dist_vals, ddof=1)) / np.sqrt(len(min_dist_vals))
+                if len(min_dist_vals) > 1
+                else 0.0
+            )
 
             results.append(
                 {
@@ -1137,6 +1168,8 @@ def main():
                     "Mask Rate 95% CI": mask_rate_ci,
                     "Coverage Mean": coverage_mean,
                     "Coverage 95% CI": coverage_ci,
+                    "Min Enemy Dist Mean": min_dist_mean,
+                    "Min Enemy Dist 95% CI": min_dist_ci,
                     "Intrinsic Spikes": (
                         float(np.mean(data["spikes"]))
                         if data["spikes"]

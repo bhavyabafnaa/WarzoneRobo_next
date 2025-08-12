@@ -84,6 +84,7 @@ def test_training_one_episode_metrics(tmp_path):
         _,
         _,
         coverage_log,
+        _,
         episode_costs,
         violation_flags,
         first_violation_episode,
@@ -129,5 +130,5 @@ def test_success_flag_survival(tmp_path):
         c3=0.01,
     )
 
-    _, _, _, _, _, _, success_flags, _, _, _, _, _, _, _ = metrics
+    _, _, _, _, _, _, success_flags, _, _, _, _, _, _, _, _ = metrics
     assert success_flags == [1]

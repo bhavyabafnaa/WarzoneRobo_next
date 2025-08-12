@@ -121,6 +121,7 @@ def train_agent(
     mask_counts = []
     mask_rates = []
     coverage_log = []
+    min_dist_log = []
     episode_costs = []
     violation_flags = []
     first_violation_episode = None
@@ -185,6 +186,7 @@ def train_agent(
         planner_bonus = max(0.1, initial_bonus *
                             (1 - (episode / num_episodes)))
         mask_count = 0
+        min_dist = float('inf')
 
         if final_beta is not None:
             decay_end = max(1, int(num_episodes * 2 / 3))
@@ -244,6 +246,12 @@ def train_agent(
                 action, terrain_decay=terrain_decay
             )
             x, y = env.agent_pos
+            if env.enemy_positions:
+                curr_min = min(
+                    abs(x - ex) + abs(y - ey)
+                    for ex, ey in env.enemy_positions
+                )
+                min_dist = min(min_dist, curr_min)
             visit_count[x][y] += 1
             count_reward = 1.0 / np.sqrt(visit_count[x][y])
 
@@ -421,6 +429,8 @@ def train_agent(
         mask_rates.append(mask_rate)
         coverage = int(np.count_nonzero(visit_count))
         coverage_log.append(coverage)
+        min_dist_val = min_dist if min_dist < float('inf') else env.grid_size * 2
+        min_dist_log.append(min_dist_val)
 
         success_rate = np.mean(success_flags)
         if logger is not None:
@@ -433,6 +443,7 @@ def train_agent(
                 logger.add_scalar("constraint_violation", violation_flag, episode)
                 logger.add_scalar("mask_rate", mask_rate, episode)
                 logger.add_scalar("coverage", coverage, episode)
+                logger.add_scalar("min_enemy_dist", min_dist_val, episode)
                 logger.add_scalar(
                     "first_violation_episode",
                     first_violation_episode if first_violation_episode is not None else num_episodes,
@@ -449,6 +460,7 @@ def train_agent(
                         "constraint_violation": violation_flag,
                         "mask_rate": mask_rate,
                         "coverage": coverage,
+                        "min_enemy_dist": min_dist_val,
                         "first_violation_episode": (
                             first_violation_episode if first_violation_episode is not None else num_episodes
                         ),
@@ -484,6 +496,7 @@ def train_agent(
         mask_counts,
         mask_rates,
         coverage_log,
+        min_dist_log,
         episode_costs,
         violation_flags,
         first_violation_episode,
