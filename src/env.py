@@ -22,8 +22,12 @@ class GridWorldICM:
         max_steps: int = 100,
         survival_reward: float = 0.05,
         enemy_speed: int = 1,
+        enemy_speed_range: Tuple[int, int] | None = None,
         enemy_policy: str = "random",
+        enemy_policy_options: List[str] | None = None,
         mine_density: float = 0.05,
+        mine_density_range: Tuple[float, float] | None = None,
+        hazard_density_range: Tuple[float, float] | None = None,
         seed: int | None = None,
     ) -> None:
         self.grid_size = grid_size
@@ -33,8 +37,12 @@ class GridWorldICM:
         self.max_steps = max_steps
         self.survival_reward = survival_reward
         self.enemy_speed = enemy_speed
+        self.enemy_speed_range = enemy_speed_range
         self.enemy_policy = enemy_policy
+        self.enemy_policy_options = enemy_policy_options
         self.mine_density = mine_density
+        self.mine_density_range = mine_density_range
+        self.hazard_density_range = hazard_density_range
         # Track cumulative cost over an episode
         self.episode_cost = 0.0
         if seed is None:
@@ -55,11 +63,41 @@ class GridWorldICM:
         if seed is not None:
             self.seed(seed)
 
+        # randomize episode-specific parameters
+        if self.mine_density_range is not None:
+            self.mine_density = float(
+                self.np_random.uniform(*self.mine_density_range)
+            )
+        if self.enemy_speed_range is not None:
+            self.enemy_speed = int(
+                self.np_random.integers(
+                    self.enemy_speed_range[0],
+                    self.enemy_speed_range[1] + 1,
+                )
+            )
+        if self.enemy_policy_options:
+            self.enemy_policy = str(self.np_random.choice(self.enemy_policy_options))
+
         if load_map_path:
             self.load_map(load_map_path)
         else:
             self.cost_map = np.ones((self.grid_size, self.grid_size)) * 0.3
+            # initialize hazard (risk) map
+            self.hazard_density = 0.0
+            if self.hazard_density_range is not None:
+                self.hazard_density = float(
+                    self.np_random.uniform(*self.hazard_density_range)
+                )
             self.risk_map = np.zeros((self.grid_size, self.grid_size))
+            if self.hazard_density > 0:
+                hazard_cells = (
+                    self.np_random.random((self.grid_size, self.grid_size))
+                    < self.hazard_density
+                )
+                hazard_vals = self.np_random.uniform(
+                    0.3, 0.7, size=(self.grid_size, self.grid_size)
+                )
+                self.risk_map = np.where(hazard_cells, hazard_vals, 0.0)
             self.terrain_map = np.full(
                 (self.grid_size, self.grid_size), "normal")
             self.mine_map = self.np_random.random(
@@ -68,7 +106,10 @@ class GridWorldICM:
                 (self.grid_size, self.grid_size)) < 0.15] = "mud"
             self.terrain_map[self.np_random.random(
                 (self.grid_size, self.grid_size)) < 0.15] = "water"
-            self.enemy_positions = [[self.grid_size // 2, self.grid_size // 2]]
+            self.enemy_positions = [[
+                int(self.np_random.integers(0, self.grid_size)),
+                int(self.np_random.integers(0, self.grid_size)),
+            ]]
 
         if add_noise:
             noise = np.random.normal(0, 0.05, self.risk_map.shape)
@@ -76,7 +117,9 @@ class GridWorldICM:
             noise = np.random.normal(0, 0.05, self.cost_map.shape)
             self.cost_map = np.clip(self.cost_map + noise, 0.0, 1.0)
 
-        self.agent_pos = [0, 0]
+        self.agent_pos = (
+            self.np_random.integers(0, self.grid_size, size=2).tolist()
+        )
         self.steps = 0
         self.episode_cost = 0.0
 
@@ -99,6 +142,7 @@ class GridWorldICM:
         self.mine_density = (
             float(data["mine_density"]) if "mine_density" in data else 0.05
         )
+        self.hazard_density = (self.risk_map > 0).mean()
 
     def save_map(self, filepath: str = "map_data.npz") -> None:
         np.savez_compressed(
@@ -413,21 +457,38 @@ def export_benchmark_maps(
         env.save_map(os.path.join(test_folder, f"map_{i:02d}.npz"))
 
     os.makedirs(ood_folder, exist_ok=True)
+    # preserve original parameters
+    orig_mine_density = env.mine_density
+    orig_mine_density_range = env.mine_density_range
+    orig_enemy_speed = env.enemy_speed
+    orig_enemy_speed_range = env.enemy_speed_range
+    orig_enemy_policy = env.enemy_policy
+    orig_enemy_policy_options = env.enemy_policy_options
+
     for i in range(num_ood):
         if i % 2 == 0:
             env.mine_density = 0.1
+            env.mine_density_range = None
             env.enemy_speed = 2
+            env.enemy_speed_range = None
             env.enemy_policy = "aggressive"
+            env.enemy_policy_options = None
         else:
             env.mine_density = 0.02
+            env.mine_density_range = None
             env.enemy_speed = 1
+            env.enemy_speed_range = None
             env.enemy_policy = "stationary"
+            env.enemy_policy_options = None
         env.reset(seed=num_train + num_test + i)
         env.save_map(os.path.join(ood_folder, f"map_{i:02d}.npz"))
 
-    env.mine_density = 0.05
-    env.enemy_speed = 1
-    env.enemy_policy = "random"
+    env.mine_density = orig_mine_density
+    env.mine_density_range = orig_mine_density_range
+    env.enemy_speed = orig_enemy_speed
+    env.enemy_speed_range = orig_enemy_speed_range
+    env.enemy_policy = orig_enemy_policy
+    env.enemy_policy_options = orig_enemy_policy_options
 
 
 def evaluate_on_benchmarks(

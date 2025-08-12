@@ -189,6 +189,34 @@ def parse_args():
         help="Learning rate for the world model",
     )
     parser.add_argument(
+        "--mine_density_range",
+        type=float,
+        nargs=2,
+        default=[0.03, 0.10],
+        help="Range for mine density",
+    )
+    parser.add_argument(
+        "--hazard_density_range",
+        type=float,
+        nargs=2,
+        default=[0.0, 0.2],
+        help="Range for initial hazard density",
+    )
+    parser.add_argument(
+        "--enemy_speed_range",
+        type=int,
+        nargs=2,
+        default=[1, 2],
+        help="Range for enemy movement speed",
+    )
+    parser.add_argument(
+        "--enemy_policies",
+        type=str,
+        nargs="+",
+        default=["random", "aggressive", "stationary"],
+        help="Enemy movement policies to sample from",
+    )
+    parser.add_argument(
         "--ablation",
         action="store_true",
         help="Loop over disabling ICM, RND and the planner individually",
@@ -264,6 +292,10 @@ def main():
         grid_size=grid_size,
         dynamic_risk=args.dynamic_risk,
         dynamic_cost=args.dynamic_cost,
+        mine_density_range=tuple(args.mine_density_range),
+        hazard_density_range=tuple(args.hazard_density_range),
+        enemy_speed_range=tuple(args.enemy_speed_range),
+        enemy_policy_options=args.enemy_policies,
         seed=seeds[0],
     )
     icm = ICMModule(input_dim, action_dim)

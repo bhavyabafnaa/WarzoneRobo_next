@@ -9,8 +9,14 @@ from src.env import (
 def test_step_boundaries_and_rewards():
     env = GridWorldICM(grid_size=3, max_steps=10)
     env.reset()
+    # starting position should lie within the grid
+    assert 0 <= env.agent_pos[0] < env.grid_size
+    assert 0 <= env.agent_pos[1] < env.grid_size
+    # set deterministic maps and agent position
+    env.agent_pos = [0, 0]
     env.cost_map = np.zeros((3, 3))
     env.risk_map = np.zeros((3, 3))
+    env.mine_map = np.zeros((3, 3), dtype=bool)
     env.cost_map[0, 1] = 0.6
     env.risk_map[0, 1] = 0.4
 
@@ -31,6 +37,19 @@ def test_step_boundaries_and_rewards():
     assert np.isclose(total_cost, 0.6)
     assert np.isclose(env.episode_cost, 0.6)
     assert reward <= -0.7
+
+
+def test_randomized_mine_and_hazard_density():
+    env = GridWorldICM(
+        grid_size=5,
+        mine_density_range=(0.03, 0.1),
+        hazard_density_range=(0.1, 0.2),
+    )
+    env.reset(seed=0)
+    assert 0.03 <= env.mine_density <= 0.1
+    assert 0.1 <= env.hazard_density <= 0.2
+    hazard_fraction = (env.risk_map > 0).mean()
+    assert abs(hazard_fraction - env.hazard_density) <= 0.15
 
 
 def test_dynamic_risk_updates_near_enemies():
@@ -63,6 +82,7 @@ def test_survival_reward_positive():
     env.cost_map = np.zeros((2, 2))
     env.risk_map = np.zeros((2, 2))
     env.mine_map = np.zeros((2, 2), dtype=bool)
+    env.terrain_map = np.full((2, 2), "normal")
     env.enemy_positions = []
     _, reward, *_ = env.step(1)
     assert reward > 0
