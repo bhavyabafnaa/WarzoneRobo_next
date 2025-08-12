@@ -72,11 +72,24 @@ def test_training_one_episode_metrics(tmp_path):
         c2=cfg.get("c2", 0.5),
         c3=cfg.get("c3", 0.01),
     )
-
-    rewards, _, _, _, _, _, success_flags, _, _, episode_costs, violation_flags = metrics
+    (
+        rewards,
+        _,
+        _,
+        _,
+        _,
+        _,
+        success_flags,
+        _,
+        _,
+        episode_costs,
+        violation_flags,
+        first_violation_episode,
+    ) = metrics
     assert len(rewards) == 1
     assert len(episode_costs) == 1
     assert len(violation_flags) == 1
+    assert isinstance(first_violation_episode, int)
 
 
 def test_success_flag_survival(tmp_path):
@@ -113,5 +126,5 @@ def test_success_flag_survival(tmp_path):
         c3=0.01,
     )
 
-    _, _, _, _, _, _, success_flags, _, _, _, _ = metrics
+    _, _, _, _, _, _, success_flags, _, _, _, _, _ = metrics
     assert success_flags == [1]

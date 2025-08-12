@@ -321,6 +321,7 @@ def main():
                 "spikes": [],
                 "episode_costs": [],
                 "violation_flags": [],
+                "first_violation_episode": [],
             },
             "PPO + ICM": {
                 "rewards": [],
@@ -329,6 +330,7 @@ def main():
                 "spikes": [],
                 "episode_costs": [],
                 "violation_flags": [],
+                "first_violation_episode": [],
             },
             "PPO + ICM + Planner": {
                 "rewards": [],
@@ -337,6 +339,7 @@ def main():
                 "spikes": [],
                 "episode_costs": [],
                 "violation_flags": [],
+                "first_violation_episode": [],
             },
             "PPO + count": {
                 "rewards": [],
@@ -345,6 +348,7 @@ def main():
                 "spikes": [],
                 "episode_costs": [],
                 "violation_flags": [],
+                "first_violation_episode": [],
             },
             "PPO + RND": {
                 "rewards": [],
@@ -353,6 +357,7 @@ def main():
                 "spikes": [],
                 "episode_costs": [],
                 "violation_flags": [],
+                "first_violation_episode": [],
             },
             "PPO + PC": {
                 "rewards": [],
@@ -361,6 +366,7 @@ def main():
                 "spikes": [],
                 "episode_costs": [],
                 "violation_flags": [],
+                "first_violation_episode": [],
             },
         }
         bench = {
@@ -448,6 +454,7 @@ def main():
                 mask_counts_ppo_only,
                 episode_costs_ppo_only,
                 violation_flags_ppo_only,
+                first_violation_episode_ppo_only,
             ) = train_agent(
                 env,
                 ppo_policy,
@@ -491,6 +498,9 @@ def main():
                 float(np.mean(episode_costs_ppo_only)))
             metrics["PPO Only"]["violation_flags"].append(
                 float(np.mean(violation_flags_ppo_only)))
+            metrics["PPO Only"]["first_violation_episode"].append(
+                first_violation_episode_ppo_only
+            )
             save_model(
                 ppo_policy,
                 os.path.join(
@@ -531,6 +541,7 @@ def main():
                     mask_counts_icm,
                     episode_costs_icm,
                     violation_flags_icm,
+                    first_violation_episode_icm,
                 ) = train_agent(
                     env,
                     ppo_icm_policy,
@@ -575,6 +586,9 @@ def main():
                     float(np.mean(episode_costs_icm)))
                 metrics["PPO + ICM"]["violation_flags"].append(
                     float(np.mean(violation_flags_icm)))
+                metrics["PPO + ICM"]["first_violation_episode"].append(
+                    first_violation_episode_icm
+                )
                 save_model(
                     ppo_icm_policy,
                     os.path.join(
@@ -616,6 +630,7 @@ def main():
                 mask_counts_pc,
                 episode_costs_pc,
                 violation_flags_pc,
+                first_violation_episode_pc,
             ) = train_agent(
                 env,
                 ppo_pc_policy,
@@ -658,6 +673,9 @@ def main():
                 float(np.mean(episode_costs_pc)))
             metrics["PPO + PC"]["violation_flags"].append(
                 float(np.mean(violation_flags_pc)))
+            metrics["PPO + PC"]["first_violation_episode"].append(
+                first_violation_episode_pc
+            )
             save_model(
                 ppo_pc_policy,
                 os.path.join(
@@ -698,6 +716,7 @@ def main():
                     mask_counts_icm_plan,
                     episode_costs_icm_plan,
                     violation_flags_icm_plan,
+                    first_violation_episode_icm_plan,
                 ) = train_agent(
                     env,
                     ppo_icm_planner_policy,
@@ -742,6 +761,9 @@ def main():
                     float(np.mean(episode_costs_icm_plan)))
                 metrics["PPO + ICM + Planner"]["violation_flags"].append(
                     float(np.mean(violation_flags_icm_plan)))
+                metrics["PPO + ICM + Planner"]["first_violation_episode"].append(
+                    first_violation_episode_icm_plan
+                )
                 save_model(
                     ppo_icm_planner_policy,
                     os.path.join(
@@ -801,6 +823,7 @@ def main():
                 mask_counts_count,
                 episode_costs_count,
                 violation_flags_count,
+                first_violation_episode_count,
             ) = train_agent(
                 env,
                 ppo_count_policy,
@@ -846,6 +869,9 @@ def main():
                 float(np.mean(episode_costs_count)))
             metrics["PPO + count"]["violation_flags"].append(
                 float(np.mean(violation_flags_count)))
+            metrics["PPO + count"]["first_violation_episode"].append(
+                first_violation_episode_count
+            )
             save_model(
                 ppo_count_policy,
                 os.path.join(
@@ -888,6 +914,7 @@ def main():
                     mask_counts_rnd,
                     episode_costs_rnd,
                     violation_flags_rnd,
+                    first_violation_episode_rnd,
                 ) = train_agent(
                     env,
                     ppo_rnd_policy,
@@ -933,6 +960,9 @@ def main():
                     float(np.mean(episode_costs_rnd)))
                 metrics["PPO + RND"]["violation_flags"].append(
                     float(np.mean(violation_flags_rnd)))
+                metrics["PPO + RND"]["first_violation_episode"].append(
+                    first_violation_episode_rnd
+                )
                 save_model(
                     ppo_rnd_policy,
                     os.path.join("checkpoints", f"ppo_rnd_{run_seed}.pt"),
@@ -1022,6 +1052,14 @@ def main():
                     data["success"],
                     alternative="two-sided").pvalue
 
+            fve = data["first_violation_episode"]
+            fve_mean = float(np.mean(fve)) if fve else 0.0
+            fve_ci = (
+                1.96 * float(np.std(fve, ddof=1)) / np.sqrt(len(fve))
+                if len(fve) > 1
+                else 0.0
+            )
+
             results.append(
                 {
                     "Setting": setting["name"],
@@ -1053,6 +1091,8 @@ def main():
                         if data["violation_flags"]
                         else 0.0
                     ),
+                    "First Violation Episode Mean": fve_mean,
+                    "First Violation Episode 95% CI": fve_ci,
                     "Reward p-value": p_reward,
                     "Success p-value": p_success,
                 }

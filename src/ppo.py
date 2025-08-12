@@ -121,6 +121,7 @@ def train_agent(
     mask_counts = []
     episode_costs = []
     violation_flags = []
+    first_violation_episode = None
 
     initial_bonus = max(0.1, float(initial_bonus))
 
@@ -392,6 +393,8 @@ def train_agent(
         episode_costs.append(Jc)
         violation_flag = float(Jc > cost_limit)
         violation_flags.append(violation_flag)
+        if violation_flag == 1 and first_violation_episode is None:
+            first_violation_episode = episode
         lambda_val = max(0.0, lambda_val + eta_lambda * (Jc - cost_limit))
 
         if episode % 50 == 0:
@@ -422,6 +425,11 @@ def train_agent(
                 logger.add_scalar("lambda_val", lambda_val, episode)
                 logger.add_scalar("episode_cost", Jc, episode)
                 logger.add_scalar("constraint_violation", violation_flag, episode)
+                logger.add_scalar(
+                    "first_violation_episode",
+                    first_violation_episode if first_violation_episode is not None else num_episodes,
+                    episode,
+                )
             elif hasattr(logger, "log"):
                 logger.log(
                     {
@@ -431,6 +439,9 @@ def train_agent(
                         "lambda_val": lambda_val,
                         "episode_cost": Jc,
                         "constraint_violation": violation_flag,
+                        "first_violation_episode": (
+                            first_violation_episode if first_violation_episode is not None else num_episodes
+                        ),
                         "episode": episode,
                     }
                 )
@@ -446,6 +457,9 @@ def train_agent(
             f"Lambda: {lambda_val:.2f}"
         )
 
+    if first_violation_episode is None:
+        first_violation_episode = num_episodes
+
     return (
         reward_log,
         intrinsic_rewards,
@@ -458,4 +472,5 @@ def train_agent(
         mask_counts,
         episode_costs,
         violation_flags,
+        first_violation_episode,
     )
