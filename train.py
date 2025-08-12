@@ -276,7 +276,7 @@ def main():
         revisit_penalty=args.revisit_penalty,
     )
 
-    export_benchmark_maps(env, num_train=15, num_test=5)
+    export_benchmark_maps(env)
 
     policy_demo = PPOPolicy(input_dim, action_dim)
     visualize_paths_on_benchmark_maps(

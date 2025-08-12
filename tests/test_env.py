@@ -1,5 +1,9 @@
 import numpy as np
-from src.env import GridWorldICM
+from src.env import (
+    GridWorldICM,
+    export_benchmark_maps,
+    evaluate_on_benchmarks,
+)
 
 
 def test_step_boundaries_and_rewards():
@@ -62,3 +66,44 @@ def test_survival_reward_positive():
     env.enemy_positions = []
     _, reward, *_ = env.step(1)
     assert reward > 0
+
+
+def test_export_benchmark_maps_counts(tmp_path):
+    env = GridWorldICM(grid_size=4)
+    export_benchmark_maps(
+        env,
+        train_folder=str(tmp_path / "train"),
+        test_folder=str(tmp_path / "test"),
+        ood_folder=str(tmp_path / "ood"),
+    )
+    assert len(list((tmp_path / "train").glob("*.npz"))) == 20
+    assert len(list((tmp_path / "test").glob("*.npz"))) == 10
+    assert len(list((tmp_path / "ood").glob("*.npz"))) == 10
+
+
+def test_evaluate_on_benchmarks_with_ood(tmp_path):
+    env = GridWorldICM(grid_size=4, max_steps=5)
+    export_benchmark_maps(
+        env,
+        num_train=1,
+        num_test=0,
+        num_ood=1,
+        train_folder=str(tmp_path / "train"),
+        test_folder=str(tmp_path / "test"),
+        ood_folder=str(tmp_path / "ood"),
+    )
+
+    class DummyPolicy:
+        def act(self, state):
+            return 0, None, None, None
+
+    id_res, ood_res = evaluate_on_benchmarks(
+        env,
+        DummyPolicy(),
+        map_folder=str(tmp_path / "train"),
+        num_maps=1,
+        H=1,
+        ood_map_folder=str(tmp_path / "ood"),
+        num_ood_maps=1,
+    )
+    assert isinstance(id_res, tuple) and isinstance(ood_res, tuple)
