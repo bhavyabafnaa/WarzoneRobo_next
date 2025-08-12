@@ -7,6 +7,8 @@ from src.icm import ICMModule
 from src.planner import SymbolicPlanner
 from src.pseudocount import PseudoCountExploration
 from src.ppo import PPOPolicy, train_agent, get_beta_schedule
+from train import evaluate_policy_on_maps, get_paired_arrays
+from scipy.stats import ttest_rel
 import yaml
 import numpy as np
 
@@ -263,3 +265,26 @@ def test_reward_ci_no_warning():
         warnings.simplefilter("always")
         check_reward_difference_ci(baseline, other)
     assert len(w) == 0
+
+
+def test_per_seed_map_metrics_collection(tmp_path):
+    env = GridWorldICM(grid_size=2, max_steps=2)
+    os.makedirs("test_maps", exist_ok=True)
+    for i in range(2):
+        env.save_map(f"test_maps/map_{i:02d}.npz")
+    input_dim = 4 * env.grid_size * env.grid_size + 2
+    action_dim = 4
+    policy = PPOPolicy(input_dim, action_dim)
+    rewards, success = evaluate_policy_on_maps(env, policy, "test_maps", 2, H=1)
+    metrics = {"PPO Only": {"rewards": {0: rewards}, "success": {0: success}}}
+    assert len(metrics["PPO Only"]["rewards"][0]) == 2
+    assert len(metrics["PPO Only"]["success"][0]) == 2
+
+
+def test_paired_arrays_equal_length():
+    baseline = {0: [1.0, 2.0], 1: [3.0]}
+    method = {0: [1.5, 2.5], 1: [2.5, 3.5, 4.5]}
+    base_arr, meth_arr = get_paired_arrays(baseline, method)
+    assert len(base_arr) == len(meth_arr)
+    # Should run without raising due to mismatched lengths
+    ttest_rel(base_arr, meth_arr)

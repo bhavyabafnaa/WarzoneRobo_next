@@ -83,6 +83,79 @@ def check_reward_difference_ci(
     return diff, ci_width
 
 
+def evaluate_policy_on_maps(
+    env: GridWorldICM,
+    policy: PPOPolicy,
+    map_folder: str,
+    num_maps: int,
+    H: int,
+) -> tuple[list[float], list[int]]:
+    """Run ``policy`` on each map in ``map_folder`` and record rewards and
+    success flags.
+
+    Returns lists of rewards and binary success values aligned by map index."""
+
+    rewards: list[float] = []
+    successes: list[int] = []
+    for i in range(num_maps):
+        map_path = f"{map_folder}/map_{i:02d}.npz"
+        obs, _ = env.reset(load_map_path=map_path)
+        planner = SymbolicPlanner(env.cost_map, env.risk_map, env.np_random)
+        g = planner.get_subgoal(env.agent_pos, H)
+        subgoal_timer = H
+        dx, dy = g[0] - env.agent_pos[0], g[1] - env.agent_pos[1]
+        obs = np.concatenate([obs, np.array([dx, dy], dtype=np.float32)])
+        done = False
+        total_reward = 0.0
+        step_count = 0
+        alive = True
+        while not done:
+            state_tensor = torch.tensor(obs, dtype=torch.float32).unsqueeze(0)
+            action, _, _, _ = policy.act(state_tensor)
+            obs_base, reward, _cost, done, _trunc, info = env.step(action)
+            subgoal_timer -= 1
+            step_count += 1
+            if subgoal_timer <= 0 or tuple(env.agent_pos) == g:
+                g = planner.get_subgoal(env.agent_pos, H)
+                subgoal_timer = H
+            dx, dy = g[0] - env.agent_pos[0], g[1] - env.agent_pos[1]
+            obs = np.concatenate([obs_base, np.array([dx, dy], dtype=np.float32)])
+            total_reward += reward
+            if info.get("dead", False):
+                alive = False
+        rewards.append(total_reward)
+        successes.append(1 if step_count >= env.max_steps and alive else 0)
+    return rewards, successes
+
+
+def get_paired_arrays(
+    baseline: dict[int, list[float]],
+    method: dict[int, list[float]],
+) -> tuple[np.ndarray, np.ndarray]:
+    """Return aligned arrays for paired statistical tests.
+
+    For each seed present in both ``baseline`` and ``method`` the rewards are
+    paired by map index and truncated to the minimum available length."""
+
+    base_flat: list[float] = []
+    method_flat: list[float] = []
+    for seed, base_vals in baseline.items():
+        if seed in method:
+            meth_vals = method[seed]
+            n = min(len(base_vals), len(meth_vals))
+            base_flat.extend(base_vals[:n])
+            method_flat.extend(meth_vals[:n])
+    return np.asarray(base_flat, dtype=float), np.asarray(method_flat, dtype=float)
+
+
+def flatten_metric(metric_dict: dict[int, list[float]]) -> list[float]:
+    """Flatten nested seed→values dict into a single list."""
+    values: list[float] = []
+    for vals in metric_dict.values():
+        values.extend(vals)
+    return values
+
+
 def parse_args():
     """Parse command line arguments with optional YAML config defaults.
 
@@ -401,8 +474,8 @@ def run(args):
 
         metrics = {
             "PPO Only": {
-                "rewards": [],
-                "success": [],
+                "rewards": {},
+                "success": {},
                 "planner_pct": [],
                 "mask_rate": [],
                 "adherence_rate": [],
@@ -417,8 +490,8 @@ def run(args):
                 "wall_time": [],
             },
             "PPO + ICM": {
-                "rewards": [],
-                "success": [],
+                "rewards": {},
+                "success": {},
                 "planner_pct": [],
                 "mask_rate": [],
                 "adherence_rate": [],
@@ -433,8 +506,8 @@ def run(args):
                 "wall_time": [],
             },
             "PPO + ICM + Planner": {
-                "rewards": [],
-                "success": [],
+                "rewards": {},
+                "success": {},
                 "planner_pct": [],
                 "mask_rate": [],
                 "adherence_rate": [],
@@ -449,8 +522,8 @@ def run(args):
                 "wall_time": [],
             },
             "PPO + count": {
-                "rewards": [],
-                "success": [],
+                "rewards": {},
+                "success": {},
                 "planner_pct": [],
                 "mask_rate": [],
                 "adherence_rate": [],
@@ -465,8 +538,8 @@ def run(args):
                 "wall_time": [],
             },
             "PPO + RND": {
-                "rewards": [],
-                "success": [],
+                "rewards": {},
+                "success": {},
                 "planner_pct": [],
                 "mask_rate": [],
                 "adherence_rate": [],
@@ -481,8 +554,8 @@ def run(args):
                 "wall_time": [],
             },
             "PPO + PC": {
-                "rewards": [],
-                "success": [],
+                "rewards": {},
+                "success": {},
                 "planner_pct": [],
                 "mask_rate": [],
                 "adherence_rate": [],
@@ -622,12 +695,6 @@ def run(args):
                 imagination_k=args.K,
                 world_model_lr=args.world_model_lr,
             )
-            metrics["PPO Only"]["rewards"].append(
-                float(np.mean(rewards_ppo_only)))
-            metrics["PPO Only"]["success"].append(
-                float(
-                    sum(success_ppo_only)) /
-                len(success_ppo_only) if success_ppo_only else 0.0)
             metrics["PPO Only"]["planner_pct"].append(
                 float(np.mean(planner_rate_ppo_only)))
             metrics["PPO Only"]["mask_rate"].append(
@@ -671,9 +738,11 @@ def run(args):
                     video_dir, f"{safe_setting}_ppo_only_{run_seed}.gif"),
                 H=args.H,
             )
-            mean_b, _ = evaluate_on_benchmarks(
+            rewards_b, success_b = evaluate_policy_on_maps(
                 env, ppo_policy, "test_maps", 5, H=args.H)
-            bench["PPO Only"].append(mean_b)
+            metrics["PPO Only"]["rewards"][run_seed] = rewards_b
+            metrics["PPO Only"]["success"][run_seed] = success_b
+            bench["PPO Only"].append(float(np.mean(rewards_b)))
 
             # PPO + ICM
             if not args.disable_icm:
@@ -729,13 +798,6 @@ def run(args):
                     imagination_k=args.K,
                     world_model_lr=args.world_model_lr,
                 )
-                metrics["PPO + ICM"]["rewards"].append(
-                    float(np.mean(rewards_ppo_icm)))
-                metrics["PPO + ICM"]["success"].append(
-                    float(sum(success_icm)) / len(success_icm)
-                    if success_icm
-                    else 0.0
-                )
                 metrics["PPO + ICM"]["planner_pct"].append(
                     float(np.mean(planner_rate_icm)))
                 metrics["PPO + ICM"]["mask_rate"].append(
@@ -781,9 +843,11 @@ def run(args):
                         video_dir, f"{safe_setting}_ppo_icm_{run_seed}.gif"),
                     H=args.H,
                 )
-                mean_b, _ = evaluate_on_benchmarks(
+                rewards_b, success_b = evaluate_policy_on_maps(
                     env, ppo_icm_policy, "test_maps", 5, H=args.H)
-                bench["PPO + ICM"].append(mean_b)
+                metrics["PPO + ICM"]["rewards"][run_seed] = rewards_b
+                metrics["PPO + ICM"]["success"][run_seed] = success_b
+                bench["PPO + ICM"].append(float(np.mean(rewards_b)))
 
             # PPO + Pseudo-count exploration
             print("Training PPO + PC")
@@ -839,10 +903,6 @@ def run(args):
                 imagination_k=args.K,
                 world_model_lr=args.world_model_lr,
             )
-            metrics["PPO + PC"]["rewards"].append(float(np.mean(rewards_pc)))
-            metrics["PPO + PC"]["success"].append(
-                float(sum(success_pc)) / len(success_pc) if success_pc else 0.0
-            )
             metrics["PPO + PC"]["planner_pct"].append(
                 float(np.mean(planner_rate_pc)))
             metrics["PPO + PC"]["mask_rate"].append(
@@ -886,9 +946,11 @@ def run(args):
                     video_dir, f"{safe_setting}_ppo_pc_{run_seed}.gif"),
                 H=args.H,
             )
-            mean_b, _ = evaluate_on_benchmarks(
+            rewards_b, success_b = evaluate_policy_on_maps(
                 env, ppo_pc_policy, "test_maps", 5, H=args.H)
-            bench["PPO + PC"].append(mean_b)
+            metrics["PPO + PC"]["rewards"][run_seed] = rewards_b
+            metrics["PPO + PC"]["success"][run_seed] = success_b
+            bench["PPO + PC"].append(float(np.mean(rewards_b)))
 
             # PPO + ICM + Planner
             if not args.disable_icm and not args.disable_planner:
@@ -944,13 +1006,6 @@ def run(args):
                     imagination_k=args.K,
                     world_model_lr=args.world_model_lr,
                 )
-                metrics["PPO + ICM + Planner"]["rewards"].append(
-                    float(np.mean(rewards_ppo_icm_plan)))
-                metrics["PPO + ICM + Planner"]["success"].append(
-                    float(sum(success_plan)) / len(success_plan)
-                    if success_plan
-                    else 0.0
-                )
                 metrics["PPO + ICM + Planner"]["planner_pct"].append(
                     float(np.mean(planner_rate_plan)))
                 metrics["PPO + ICM + Planner"]["mask_rate"].append(
@@ -1001,9 +1056,11 @@ def run(args):
                     ),
                     H=args.H,
                 )
-                mean_b, _ = evaluate_on_benchmarks(
+                rewards_b, success_b = evaluate_policy_on_maps(
                     env, ppo_icm_planner_policy, "test_maps", 5, H=args.H)
-                bench["PPO + ICM + Planner"].append(mean_b)
+                metrics["PPO + ICM + Planner"]["rewards"][run_seed] = rewards_b
+                metrics["PPO + ICM + Planner"]["success"][run_seed] = success_b
+                bench["PPO + ICM + Planner"].append(float(np.mean(rewards_b)))
                 if paths_plan:
                     heat_path = None
                     if plot_dir:
@@ -1071,14 +1128,6 @@ def run(args):
                 imagination_k=args.K,
                 world_model_lr=args.world_model_lr,
             )
-            metrics["PPO + count"]["rewards"].append(
-                float(np.mean(rewards_ppo_count))
-            )
-            metrics["PPO + count"]["success"].append(
-                float(sum(success_count)) / len(success_count)
-                if success_count
-                else 0.0
-            )
             metrics["PPO + count"]["planner_pct"].append(
                 float(np.mean(planner_rate_count)))
             metrics["PPO + count"]["mask_rate"].append(
@@ -1122,9 +1171,11 @@ def run(args):
                     video_dir, f"{safe_setting}_ppo_count_{run_seed}.gif"),
                 H=args.H,
             )
-            mean_b, _ = evaluate_on_benchmarks(
+            rewards_b, success_b = evaluate_policy_on_maps(
                 env, ppo_count_policy, "test_maps", 5, H=args.H)
-            bench["PPO + count"].append(mean_b)
+            metrics["PPO + count"]["rewards"][run_seed] = rewards_b
+            metrics["PPO + count"]["success"][run_seed] = success_b
+            bench["PPO + count"].append(float(np.mean(rewards_b)))
 
             # RND exploration
             if not args.disable_rnd:
@@ -1183,13 +1234,6 @@ def run(args):
                     imagination_k=args.K,
                     world_model_lr=args.world_model_lr,
                 )
-                metrics["PPO + RND"]["rewards"].append(
-                    float(np.mean(rewards_ppo_rnd)))
-                metrics["PPO + RND"]["success"].append(
-                    float(sum(success_rnd)) / len(success_rnd)
-                    if success_rnd
-                    else 0.0
-                )
                 metrics["PPO + RND"]["planner_pct"].append(
                     float(np.mean(planner_rate_rnd)))
                 metrics["PPO + RND"]["mask_rate"].append(
@@ -1233,9 +1277,11 @@ def run(args):
                         video_dir, f"{safe_setting}_ppo_rnd_{run_seed}.gif"),
                     H=args.H,
                 )
-                mean_b, _ = evaluate_on_benchmarks(
+                rewards_b, success_b = evaluate_policy_on_maps(
                     env, ppo_rnd_policy, "test_maps", 5, H=args.H)
-            bench["PPO + RND"].append(mean_b)
+                metrics["PPO + RND"]["rewards"][run_seed] = rewards_b
+                metrics["PPO + RND"]["success"][run_seed] = success_b
+                bench["PPO + RND"].append(float(np.mean(rewards_b)))
 
         # Plot aggregated curves across seeds for this setting
         for name, logs_dict in curve_logs.items():
@@ -1260,8 +1306,10 @@ def run(args):
                 plot_training_curves(metrics_to_plot, output_path=out_file)
 
         # Aggregate metrics across seeds for this setting
-        baseline_rewards = np.array(metrics["PPO Only"]["rewards"])
-        baseline_success = np.array(metrics["PPO Only"]["success"])
+        baseline_rewards = np.array(
+            flatten_metric(metrics["PPO Only"]["rewards"]))
+        baseline_success = np.array(
+            flatten_metric(metrics["PPO Only"]["success"]))
 
         anova_reward_p = np.nan
         anova_success_p = np.nan
@@ -1269,10 +1317,11 @@ def run(args):
             reward_groups = []
             success_groups = []
             for data in metrics.values():
-                if len(data["rewards"]) == len(
-                        baseline_rewards) and data["rewards"]:
-                    reward_groups.append(data["rewards"])
-                    success_groups.append(data["success"])
+                rewards_flat = flatten_metric(data["rewards"])
+                success_flat = flatten_metric(data["success"])
+                if len(rewards_flat) == len(baseline_rewards) and rewards_flat:
+                    reward_groups.append(rewards_flat)
+                    success_groups.append(success_flat)
             if len(reward_groups) >= 3:
                 anova_reward_p = f_oneway(*reward_groups).pvalue
                 anova_success_p = f_oneway(*success_groups).pvalue
@@ -1282,38 +1331,30 @@ def run(args):
             if args.stat_test == "anova":
                 p_reward = anova_reward_p
                 p_success = anova_success_p
-            elif name == "PPO Only" or len(baseline_rewards) != len(
-                data["rewards"]
-            ):
+            elif name == "PPO Only":
                 p_reward = np.nan
                 p_success = np.nan
-            elif args.stat_test == "paired":
-                p_reward = ttest_rel(baseline_rewards, data["rewards"]).pvalue
-                p_success = ttest_rel(baseline_success, data["success"]).pvalue
-            elif args.stat_test == "welch":
-                p_reward = ttest_ind(
-                    baseline_rewards,
-                    data["rewards"],
-                    equal_var=False).pvalue
-                p_success = ttest_ind(
-                    baseline_success,
-                    data["success"],
-                    equal_var=False).pvalue
-            else:  # mannwhitney
-                p_reward = mannwhitneyu(
-                    baseline_rewards,
-                    data["rewards"],
-                    alternative="two-sided").pvalue
-                p_success = mannwhitneyu(
-                    baseline_success,
-                    data["success"],
-                    alternative="two-sided").pvalue
-            reward_mean, reward_ci = mean_ci(data["rewards"])
+            else:
+                base_arr, meth_arr = get_paired_arrays(
+                    metrics["PPO Only"]["rewards"], data["rewards"])
+                base_succ, meth_succ = get_paired_arrays(
+                    metrics["PPO Only"]["success"], data["success"])
+                if args.stat_test == "paired":
+                    p_reward = ttest_rel(base_arr, meth_arr).pvalue
+                    p_success = ttest_rel(base_succ, meth_succ).pvalue
+                elif args.stat_test == "welch":
+                    p_reward = ttest_ind(baseline_rewards, flatten_metric(data["rewards"]), equal_var=False).pvalue
+                    p_success = ttest_ind(baseline_success, flatten_metric(data["success"]), equal_var=False).pvalue
+                else:  # mannwhitney
+                    p_reward = mannwhitneyu(baseline_rewards, flatten_metric(data["rewards"]), alternative="two-sided").pvalue
+                    p_success = mannwhitneyu(baseline_success, flatten_metric(data["success"]), alternative="two-sided").pvalue
+            reward_mean, reward_ci = mean_ci(flatten_metric(data["rewards"]))
             reward = f"{reward_mean:.2f} ± {reward_ci:.2f}"
             if name != "PPO Only":
                 check_reward_difference_ci(
-                    metrics["PPO Only"]["rewards"], data["rewards"])
-            success = format_mean_ci(data["success"])
+                    flatten_metric(metrics["PPO Only"]["rewards"]),
+                    flatten_metric(data["rewards"]))
+            success = format_mean_ci(flatten_metric(data["success"]))
             planner = format_mean_ci(data["planner_pct"], scale=100)
             mask_rate = format_mean_ci(data["mask_rate"])
             adherence = format_mean_ci(data["adherence_rate"])
