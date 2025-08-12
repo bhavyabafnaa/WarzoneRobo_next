@@ -78,6 +78,8 @@ def train_agent(
     tau: float = 0.6,
     use_risk_penalty: bool = True,
     kappa: float = 2.0,
+    H: int = 8,
+    waypoint_bonus: float = 0.05,
 ):
     """Train a PPO agent with optional curiosity and planning.
 
@@ -100,6 +102,9 @@ def train_agent(
         training begins. Set to ``False`` to use the environment state and
         maps provided by the caller.
     """
+
+    if waypoint_bonus > 0:
+        use_icm = False
 
     reward_log = []
     paths_log = []
@@ -125,6 +130,10 @@ def train_agent(
     for episode in range(num_episodes):
         obs, _ = env.reset(
             seed=seed, load_map_path=benchmark_map, add_noise=add_noise)
+        g = planner.get_subgoal(env.agent_pos, H)
+        subgoal_timer = H
+        dx, dy = g[0] - env.agent_pos[0], g[1] - env.agent_pos[1]
+        obs = np.concatenate([obs, np.array([dx, dy], dtype=np.float32)])
 
         done = False
         total_ext_reward = 0
@@ -214,16 +223,31 @@ def train_agent(
             else:
                 ppo_decisions += 1
 
-            next_obs, ext_reward, cost_t, done, _, info = env.step(
+            prev_dist = abs(g[0] - env.agent_pos[0]) + abs(g[1] - env.agent_pos[1])
+
+            next_obs_base, ext_reward, cost_t, done, _, info = env.step(
                 action, terrain_decay=terrain_decay
             )
             x, y = env.agent_pos
             visit_count[x][y] += 1
             count_reward = 1.0 / np.sqrt(visit_count[x][y])
 
-            if used_planner and env.risk_map[env.agent_pos[0]
-                                             ][env.agent_pos[1]] < 0.5:
+            if used_planner and env.risk_map[env.agent_pos[0]][env.agent_pos[1]] < 0.5:
                 ext_reward += planner_bonus
+
+            new_dist = abs(g[0] - env.agent_pos[0]) + abs(g[1] - env.agent_pos[1])
+            if new_dist < prev_dist or new_dist == 0:
+                ext_reward += waypoint_bonus
+
+            subgoal_timer -= 1
+            if new_dist == 0 or subgoal_timer <= 0:
+                g = planner.get_subgoal(env.agent_pos, H)
+                subgoal_timer = H
+
+            dx, dy = g[0] - env.agent_pos[0], g[1] - env.agent_pos[1]
+            next_obs = np.concatenate(
+                [next_obs_base, np.array([dx, dy], dtype=np.float32)]
+            )
 
             next_tensor = torch.tensor(
                 next_obs, dtype=torch.float32).unsqueeze(0)

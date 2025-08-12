@@ -15,7 +15,7 @@ def test_short_training_loop(tmp_path):
     os.makedirs("maps", exist_ok=True)
     env.save_map("maps/map_00.npz")
 
-    input_dim = 4 * env.grid_size * env.grid_size
+    input_dim = 4 * env.grid_size * env.grid_size + 2
     action_dim = 4
     policy = PPOPolicy(input_dim, action_dim)
     icm = ICMModule(input_dim, action_dim)
@@ -49,7 +49,7 @@ def test_training_one_episode_metrics(tmp_path):
     os.makedirs("maps", exist_ok=True)
     env.save_map("maps/map_00.npz")
 
-    input_dim = 4 * env.grid_size * env.grid_size
+    input_dim = 4 * env.grid_size * env.grid_size + 2
     action_dim = 4
     policy = PPOPolicy(input_dim, action_dim)
     icm = ICMModule(input_dim, action_dim)
@@ -86,7 +86,7 @@ def test_success_flag_survival(tmp_path):
     os.makedirs("maps", exist_ok=True)
     env.save_map("maps/map_00.npz")
 
-    input_dim = 4 * env.grid_size * env.grid_size
+    input_dim = 4 * env.grid_size * env.grid_size + 2
     action_dim = 4
     policy = PPOPolicy(input_dim, action_dim)
     icm = ICMModule(input_dim, action_dim)

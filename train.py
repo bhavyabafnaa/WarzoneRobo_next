@@ -145,6 +145,18 @@ def parse_args():
         help="Disable the symbolic planner",
     )
     parser.add_argument(
+        "--H",
+        type=int,
+        default=8,
+        help="Subgoal planning horizon",
+    )
+    parser.add_argument(
+        "--waypoint_bonus",
+        type=float,
+        default=0.05,
+        help="Reward bonus for moving toward subgoal",
+    )
+    parser.add_argument(
         "--ablation",
         action="store_true",
         help="Loop over disabling ICM, RND and the planner individually",
@@ -206,7 +218,7 @@ def main():
         logger = wandb
 
     grid_size = args.grid_size
-    input_dim = 4 * grid_size * grid_size
+    input_dim = 4 * grid_size * grid_size + 2
     action_dim = 4
 
     if args.seeds:
@@ -236,7 +248,7 @@ def main():
 
     policy_demo = PPOPolicy(input_dim, action_dim)
     visualize_paths_on_benchmark_maps(
-        env, policy_demo, map_folder="train_maps/", num_maps=9
+        env, policy_demo, map_folder="train_maps/", num_maps=9, H=args.H
     )
 
     planner_weights = {
@@ -402,6 +414,8 @@ def main():
                 tau=args.tau,
                 kappa=args.kappa,
                 use_risk_penalty=not args.disable_risk_penalty,
+                H=args.H,
+                waypoint_bonus=args.waypoint_bonus,
             )
             metrics["PPO Only"]["rewards"].append(
                 float(np.mean(rewards_ppo_only)))
@@ -425,9 +439,10 @@ def main():
                 ppo_policy,
                 os.path.join(
                     "videos", f"{safe_setting}_ppo_only_{run_seed}.gif"),
+                H=args.H,
             )
             mean_b, std_b = evaluate_on_benchmarks(
-                env, ppo_policy, "test_maps", 5)
+                env, ppo_policy, "test_maps", 5, H=args.H)
             bench["PPO Only"].append(mean_b)
 
             # PPO + ICM
@@ -470,6 +485,8 @@ def main():
                     tau=args.tau,
                     kappa=args.kappa,
                     use_risk_penalty=not args.disable_risk_penalty,
+                    H=args.H,
+                    waypoint_bonus=args.waypoint_bonus,
                 )
                 metrics["PPO + ICM"]["rewards"].append(
                     float(np.mean(rewards_ppo_icm)))
@@ -496,9 +513,10 @@ def main():
                     ppo_icm_policy,
                     os.path.join(
                         "videos", f"{safe_setting}_ppo_icm_{run_seed}.gif"),
+                    H=args.H,
                 )
                 mean_b, std_b = evaluate_on_benchmarks(
-                    env, ppo_icm_policy, "test_maps", 5)
+                    env, ppo_icm_policy, "test_maps", 5, H=args.H)
                 bench["PPO + ICM"].append(mean_b)
 
             # PPO + Pseudo-count exploration
@@ -541,6 +559,8 @@ def main():
                 tau=args.tau,
                 kappa=args.kappa,
                 use_risk_penalty=not args.disable_risk_penalty,
+                H=args.H,
+                waypoint_bonus=args.waypoint_bonus,
             )
             metrics["PPO + PC"]["rewards"].append(float(np.mean(rewards_pc)))
             metrics["PPO + PC"]["success"].append(
@@ -562,9 +582,10 @@ def main():
                 ppo_pc_policy,
                 os.path.join(
                     "videos", f"{safe_setting}_ppo_pc_{run_seed}.gif"),
+                H=args.H,
             )
             mean_b, std_b = evaluate_on_benchmarks(
-                env, ppo_pc_policy, "test_maps", 5)
+                env, ppo_pc_policy, "test_maps", 5, H=args.H)
             bench["PPO + PC"].append(mean_b)
 
             # PPO + ICM + Planner
@@ -607,6 +628,8 @@ def main():
                     tau=args.tau,
                     kappa=args.kappa,
                     use_risk_penalty=not args.disable_risk_penalty,
+                    H=args.H,
+                    waypoint_bonus=args.waypoint_bonus,
                 )
                 metrics["PPO + ICM + Planner"]["rewards"].append(
                     float(np.mean(rewards_ppo_icm_plan)))
@@ -638,9 +661,10 @@ def main():
                     os.path.join(
                         "videos", f"{safe_setting}_ppo_icm_planner_{run_seed}.gif"
                     ),
+                    H=args.H,
                 )
                 mean_b, std_b = evaluate_on_benchmarks(
-                    env, ppo_icm_planner_policy, "test_maps", 5)
+                    env, ppo_icm_planner_policy, "test_maps", 5, H=args.H)
                 bench["PPO + ICM + Planner"].append(mean_b)
                 if paths_plan:
                     heat_path = None
@@ -695,6 +719,8 @@ def main():
                 tau=args.tau,
                 kappa=args.kappa,
                 use_risk_penalty=not args.disable_risk_penalty,
+                H=args.H,
+                waypoint_bonus=args.waypoint_bonus,
             )
             metrics["PPO + count"]["rewards"].append(
                 float(np.mean(rewards_ppo_count))
@@ -720,9 +746,10 @@ def main():
                 ppo_count_policy,
                 os.path.join(
                     "videos", f"{safe_setting}_ppo_count_{run_seed}.gif"),
+                H=args.H,
             )
             mean_b, std_b = evaluate_on_benchmarks(
-                env, ppo_count_policy, "test_maps", 5)
+                env, ppo_count_policy, "test_maps", 5, H=args.H)
             bench["PPO + count"].append(mean_b)
 
             # RND exploration
@@ -768,6 +795,8 @@ def main():
                     tau=args.tau,
                     kappa=args.kappa,
                     use_risk_penalty=not args.disable_risk_penalty,
+                    H=args.H,
+                    waypoint_bonus=args.waypoint_bonus,
                 )
                 metrics["PPO + RND"]["rewards"].append(
                     float(np.mean(rewards_ppo_rnd)))
@@ -792,9 +821,10 @@ def main():
                     ppo_rnd_policy,
                     os.path.join(
                         "videos", f"{safe_setting}_ppo_rnd_{run_seed}.gif"),
+                    H=args.H,
                 )
                 mean_b, std_b = evaluate_on_benchmarks(
-                    env, ppo_rnd_policy, "test_maps", 5)
+                    env, ppo_rnd_policy, "test_maps", 5, H=args.H)
             bench["PPO + RND"].append(mean_b)
 
         # Plot aggregated curves across seeds for this setting

@@ -56,3 +56,40 @@ class SymbolicPlanner:
         if best_action is None:
             return self.np_random.choice([0, 1, 2, 3])
         return best_action
+
+    def _score(self, i: int, j: int, visited: np.ndarray) -> float:
+        cost = self.cost_map[i][j]
+        risk = self.risk_map[i][j]
+        revisit = self.revisit_penalty if visited[i][j] else 0
+        return self.cost_weight * cost + self.risk_weight * risk + revisit
+
+    def get_subgoal(self, agent_pos, H: int = 8):
+        """Plan ``H`` steps ahead and return the resulting coordinate.
+
+        The planner simulates ``H`` applications of ``get_safe_subgoal`` using a
+        copy of the visitation map so as not to disturb the real planner state.
+        The final simulated position serves as the intermediate subgoal ``g``
+        that higher-level controllers can track.
+        """
+
+        directions = {0: (-1, 0), 1: (1, 0), 2: (0, -1), 3: (0, 1)}
+        temp_pos = tuple(agent_pos)
+        visited = self.visited_map.copy()
+
+        for _ in range(H):
+            x, y = temp_pos
+            best_score = float("inf")
+            best_move = (0, 0)
+            for dx, dy in directions.values():
+                nx, ny = x + dx, y + dy
+                if 0 <= nx < self.grid_size and 0 <= ny < self.grid_size:
+                    s = self._score(nx, ny, visited)
+                    if s < best_score:
+                        best_score = s
+                        best_move = (dx, dy)
+            nx, ny = x + best_move[0], y + best_move[1]
+            if 0 <= nx < self.grid_size and 0 <= ny < self.grid_size:
+                temp_pos = (nx, ny)
+                visited[nx, ny] = True
+
+        return temp_pos
