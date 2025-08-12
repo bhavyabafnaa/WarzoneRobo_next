@@ -64,15 +64,21 @@ def parse_args():
     parser.add_argument(
         "--eta_lambda",
         type=float,
+        choices=[0.01, 0.05],
         default=0.01,
         help="Learning rate for lambda update",
     )
     parser.add_argument(
+        "--cost_limit",
         "--d",
+        dest="cost_limit",
         type=float,
         default=1.0,
         help="Cost threshold for constraint",
     )
+    parser.add_argument("--c1", type=float, default=1.0)
+    parser.add_argument("--c2", type=float, default=0.5)
+    parser.add_argument("--c3", type=float, default=0.01)
     parser.add_argument(
         "--initial-beta",
         type=float,
@@ -370,7 +376,10 @@ def main():
                 add_noise=args.add_noise,
                 logger=logger,
                 eta_lambda=args.eta_lambda,
-                d=args.d,
+                cost_limit=args.cost_limit,
+                c1=args.c1,
+                c2=args.c2,
+                c3=args.c3,
             )
             metrics["PPO Only"]["rewards"].append(
                 float(np.mean(rewards_ppo_only)))
@@ -431,7 +440,10 @@ def main():
                     add_noise=args.add_noise,
                     logger=logger,
                     eta_lambda=args.eta_lambda,
-                    d=args.d,
+                    cost_limit=args.cost_limit,
+                    c1=args.c1,
+                    c2=args.c2,
+                    c3=args.c3,
                 )
                 metrics["PPO + ICM"]["rewards"].append(
                     float(np.mean(rewards_ppo_icm)))
@@ -495,7 +507,10 @@ def main():
                 add_noise=args.add_noise,
                 logger=logger,
                 eta_lambda=args.eta_lambda,
-                d=args.d,
+                cost_limit=args.cost_limit,
+                c1=args.c1,
+                c2=args.c2,
+                c3=args.c3,
             )
             metrics["PPO + PC"]["rewards"].append(float(np.mean(rewards_pc)))
             metrics["PPO + PC"]["success"].append(
@@ -554,7 +569,10 @@ def main():
                     add_noise=args.add_noise,
                     logger=logger,
                     eta_lambda=args.eta_lambda,
-                    d=args.d,
+                    cost_limit=args.cost_limit,
+                    c1=args.c1,
+                    c2=args.c2,
+                    c3=args.c3,
                 )
                 metrics["PPO + ICM + Planner"]["rewards"].append(
                     float(np.mean(rewards_ppo_icm_plan)))
@@ -635,7 +653,10 @@ def main():
                 add_noise=args.add_noise,
                 logger=logger,
                 eta_lambda=args.eta_lambda,
-                d=args.d,
+                cost_limit=args.cost_limit,
+                c1=args.c1,
+                c2=args.c2,
+                c3=args.c3,
             )
             metrics["PPO + count"]["rewards"].append(
                 float(np.mean(rewards_ppo_count))
@@ -701,7 +722,10 @@ def main():
                     add_noise=args.add_noise,
                     logger=logger,
                     eta_lambda=args.eta_lambda,
-                    d=args.d,
+                    cost_limit=args.cost_limit,
+                    c1=args.c1,
+                    c2=args.c2,
+                    c3=args.c3,
                 )
                 metrics["PPO + RND"]["rewards"].append(
                     float(np.mean(rewards_ppo_rnd)))

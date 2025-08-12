@@ -71,8 +71,8 @@ def train_agent(
     reset_env: bool = True,
     lambda_cost: float = 1.0,
     eta_lambda: float = 0.01,
-    d: float = 1.0,
-    c1: float = 0.5,
+    cost_limit: float = 1.0,
+    c1: float = 1.0,
     c2: float = 0.5,
     c3: float = 0.01,
 ):
@@ -295,7 +295,7 @@ def train_agent(
         optimizer_policy.step()
 
         Jc = sum(cost_buf)
-        lambda_val = max(0.0, lambda_val + eta_lambda * (Jc - d))
+        lambda_val = max(0.0, lambda_val + eta_lambda * (Jc - cost_limit))
 
         if episode % 50 == 0:
             paths_log.append(agent_path)

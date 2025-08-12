@@ -4,7 +4,10 @@ cost_weight: 3.0
 risk_weight: 3.0
 revisit_penalty: 2.0
 eta_lambda: 0.01
-d: 1.0
+cost_limit: 1.0
+c1: 1.0
+c2: 0.5
+c3: 0.01
 survival_reward: 0.05
 dynamic_risk: true
 dynamic_cost: true

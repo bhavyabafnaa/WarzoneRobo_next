@@ -1,4 +1,5 @@
 import os
+import os
 from torch import optim
 
 from src.env import GridWorldICM
@@ -31,6 +32,11 @@ def test_short_training_loop(tmp_path):
         use_icm=False,
         use_planner=False,
         num_episodes=1,
+        eta_lambda=0.05,
+        cost_limit=0.5,
+        c1=1.0,
+        c2=0.5,
+        c3=0.01,
 
     )
 
@@ -60,6 +66,11 @@ def test_training_one_episode_metrics(tmp_path):
         use_icm=False,
         use_planner=False,
         num_episodes=1,
+        eta_lambda=cfg.get("eta_lambda", 0.01),
+        cost_limit=cfg.get("cost_limit", 1.0),
+        c1=cfg.get("c1", 1.0),
+        c2=cfg.get("c2", 0.5),
+        c3=cfg.get("c3", 0.01),
     )
 
     rewards, _, _, _, _, _, success_flags, _ = metrics
@@ -93,6 +104,11 @@ def test_success_flag_survival(tmp_path):
         use_planner=False,
         num_episodes=1,
         reset_env=False,
+        eta_lambda=0.05,
+        cost_limit=0.5,
+        c1=1.0,
+        c2=0.5,
+        c3=0.01,
     )
 
     _, _, _, _, _, _, success_flags, _ = metrics
