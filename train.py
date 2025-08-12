@@ -86,6 +86,18 @@ def parse_args():
         help="Risk threshold for masking unsafe actions",
     )
     parser.add_argument(
+        "--kappa",
+        type=float,
+        choices=[2, 4],
+        default=2.0,
+        help="Soft risk penalty weight applied to policy logits",
+    )
+    parser.add_argument(
+        "--disable-risk-penalty",
+        action="store_true",
+        help="Disable risk-based soft penalty on logits",
+    )
+    parser.add_argument(
         "--initial-beta",
         type=float,
         default=0.1,
@@ -388,6 +400,8 @@ def main():
                 c2=args.c2,
                 c3=args.c3,
                 tau=args.tau,
+                kappa=args.kappa,
+                use_risk_penalty=not args.disable_risk_penalty,
             )
             metrics["PPO Only"]["rewards"].append(
                 float(np.mean(rewards_ppo_only)))
@@ -454,6 +468,8 @@ def main():
                     c2=args.c2,
                     c3=args.c3,
                     tau=args.tau,
+                    kappa=args.kappa,
+                    use_risk_penalty=not args.disable_risk_penalty,
                 )
                 metrics["PPO + ICM"]["rewards"].append(
                     float(np.mean(rewards_ppo_icm)))
@@ -523,6 +539,8 @@ def main():
                 c2=args.c2,
                 c3=args.c3,
                 tau=args.tau,
+                kappa=args.kappa,
+                use_risk_penalty=not args.disable_risk_penalty,
             )
             metrics["PPO + PC"]["rewards"].append(float(np.mean(rewards_pc)))
             metrics["PPO + PC"]["success"].append(
@@ -587,6 +605,8 @@ def main():
                     c2=args.c2,
                     c3=args.c3,
                     tau=args.tau,
+                    kappa=args.kappa,
+                    use_risk_penalty=not args.disable_risk_penalty,
                 )
                 metrics["PPO + ICM + Planner"]["rewards"].append(
                     float(np.mean(rewards_ppo_icm_plan)))
@@ -673,6 +693,8 @@ def main():
                 c2=args.c2,
                 c3=args.c3,
                 tau=args.tau,
+                kappa=args.kappa,
+                use_risk_penalty=not args.disable_risk_penalty,
             )
             metrics["PPO + count"]["rewards"].append(
                 float(np.mean(rewards_ppo_count))
@@ -744,6 +766,8 @@ def main():
                     c2=args.c2,
                     c3=args.c3,
                     tau=args.tau,
+                    kappa=args.kappa,
+                    use_risk_penalty=not args.disable_risk_penalty,
                 )
                 metrics["PPO + RND"]["rewards"].append(
                     float(np.mean(rewards_ppo_rnd)))

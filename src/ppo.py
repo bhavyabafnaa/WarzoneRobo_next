@@ -76,6 +76,8 @@ def train_agent(
     c2: float = 0.5,
     c3: float = 0.01,
     tau: float = 0.6,
+    use_risk_penalty: bool = True,
+    kappa: float = 2.0,
 ):
     """Train a PPO agent with optional curiosity and planning.
 
@@ -83,6 +85,13 @@ def train_agent(
     When ``final_beta`` is provided its value linearly decays from ``beta`` to
     ``final_beta`` over the first two thirds of training episodes and then
     remains constant for the rest of training.
+
+    A soft risk-aware penalty can be applied to the policy logits before
+    sampling actions. Each candidate action's logit is reduced by
+    ``kappa * risk`` of the next cell, encouraging safer choices without
+    hard masking. Set ``use_risk_penalty`` to ``False`` to disable this
+    behaviour for ablation runs or adjust ``kappa`` (e.g. 2 or 4) to control
+    its strength.
 
     Parameters
     ----------
@@ -163,13 +172,13 @@ def train_agent(
 
         while not done:
             state_tensor = torch.tensor(obs, dtype=torch.float32).unsqueeze(0)
-            action, logprob, value, value_cost = policy.act(state_tensor)
 
             x, y = env.agent_pos
             directions = {0: (-1, 0), 1: (1, 0), 2: (0, -1), 3: (0, 1)}
-            candidate_risks = {}
-            for a, (dx, dy) in directions.items():
+            candidate_risks = []
+            for a in range(len(directions)):
                 nx, ny = x, y
+                dx, dy = directions[a]
                 if a == 0 and x > 0:
                     nx -= 1
                 elif a == 1 and x < env.grid_size - 1:
@@ -178,10 +187,23 @@ def train_agent(
                     ny -= 1
                 elif a == 3 and y < env.grid_size - 1:
                     ny += 1
-                candidate_risks[a] = env.risk_map[nx][ny]
+                candidate_risks.append(env.risk_map[nx][ny])
+
+            logits, value, value_cost = policy.forward(state_tensor)
+            if use_risk_penalty:
+                risk_tensor = torch.tensor(
+                    candidate_risks, dtype=logits.dtype, device=logits.device
+                ).unsqueeze(0)
+                logits = logits - kappa * risk_tensor
+
+            probs = F.softmax(logits, dim=-1)
+            dist = torch.distributions.Categorical(probs)
+            action = dist.sample()
+            logprob = dist.log_prob(action)
+            action = action.item()
 
             used_planner = False
-            if use_planner and candidate_risks.get(action, 1.0) >= tau:
+            if use_planner and candidate_risks[action] >= tau:
                 action = planner.get_safe_subgoal(env.agent_pos)
                 used_planner = True
                 logprob = torch.tensor([0.0])
