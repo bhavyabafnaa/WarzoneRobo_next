@@ -7,6 +7,7 @@ import torch
 import torch.optim as optim
 import pandas as pd
 import numpy as np
+from scipy import stats
 from scipy.stats import (
     ttest_rel,
     ttest_ind,
@@ -32,6 +33,25 @@ from src.pseudocount import PseudoCountExploration
 from src.planner import SymbolicPlanner
 from src.ppo import PPOPolicy, train_agent
 from src.utils import save_model, count_intrinsic_spikes
+
+
+def mean_ci(values: list[float]) -> tuple[float, float]:
+    """Return the mean and 95% confidence interval for ``values``."""
+    if not values:
+        return 0.0, 0.0
+    arr = np.asarray(values, dtype=float)
+    mean = float(arr.mean())
+    if len(arr) < 2:
+        return mean, 0.0
+    ci = float(stats.sem(arr) * stats.t.ppf(0.975, len(arr) - 1))
+    return mean, ci
+
+
+def format_mean_ci(values: list[float], scale: float = 1.0) -> str:
+    """Format mean ± 95% CI string for ``values`` with optional scaling."""
+    scaled = np.asarray(values, dtype=float) * scale
+    mean, ci = mean_ci(scaled)
+    return f"{mean:.2f} ± {ci:.2f}"
 
 
 def parse_args():
@@ -582,7 +602,7 @@ def main():
                     "videos", f"{safe_setting}_ppo_only_{run_seed}.gif"),
                 H=args.H,
             )
-            mean_b, std_b = evaluate_on_benchmarks(
+            mean_b, _ = evaluate_on_benchmarks(
                 env, ppo_policy, "test_maps", 5, H=args.H)
             bench["PPO Only"].append(mean_b)
 
@@ -693,7 +713,7 @@ def main():
                         "videos", f"{safe_setting}_ppo_icm_{run_seed}.gif"),
                     H=args.H,
                 )
-                mean_b, std_b = evaluate_on_benchmarks(
+                mean_b, _ = evaluate_on_benchmarks(
                     env, ppo_icm_policy, "test_maps", 5, H=args.H)
                 bench["PPO + ICM"].append(mean_b)
 
@@ -799,7 +819,7 @@ def main():
                     "videos", f"{safe_setting}_ppo_pc_{run_seed}.gif"),
                 H=args.H,
             )
-            mean_b, std_b = evaluate_on_benchmarks(
+            mean_b, _ = evaluate_on_benchmarks(
                 env, ppo_pc_policy, "test_maps", 5, H=args.H)
             bench["PPO + PC"].append(mean_b)
 
@@ -915,7 +935,7 @@ def main():
                     ),
                     H=args.H,
                 )
-                mean_b, std_b = evaluate_on_benchmarks(
+                mean_b, _ = evaluate_on_benchmarks(
                     env, ppo_icm_planner_policy, "test_maps", 5, H=args.H)
                 bench["PPO + ICM + Planner"].append(mean_b)
                 if paths_plan:
@@ -1037,7 +1057,7 @@ def main():
                     "videos", f"{safe_setting}_ppo_count_{run_seed}.gif"),
                 H=args.H,
             )
-            mean_b, std_b = evaluate_on_benchmarks(
+            mean_b, _ = evaluate_on_benchmarks(
                 env, ppo_count_policy, "test_maps", 5, H=args.H)
             bench["PPO + count"].append(mean_b)
 
@@ -1149,7 +1169,7 @@ def main():
                         "videos", f"{safe_setting}_ppo_rnd_{run_seed}.gif"),
                     H=args.H,
                 )
-                mean_b, std_b = evaluate_on_benchmarks(
+                mean_b, _ = evaluate_on_benchmarks(
                     env, ppo_rnd_policy, "test_maps", 5, H=args.H)
             bench["PPO + RND"].append(mean_b)
 
@@ -1163,12 +1183,17 @@ def main():
                     out_file = os.path.join(
                         args.plot_dir, f"{safe_setting}_{safe_name}.pdf"
                     )
-                plot_training_curves(
-                    logs_dict["rewards"],
-                    logs_dict["intrinsic"] if logs_dict["intrinsic"] else None,
-                    logs_dict["success"],
-                    output_path=out_file,
-                )
+                metrics_to_plot = {
+                    "Reward": logs_dict["rewards"],
+                    "Success": logs_dict["success"],
+                }
+                if logs_dict["intrinsic"]:
+                    metrics_to_plot["Intrinsic Reward"] = logs_dict["intrinsic"]
+                if logs_dict["episode_costs"]:
+                    metrics_to_plot["Episode Cost"] = logs_dict["episode_costs"]
+                if logs_dict["violation_flags"]:
+                    metrics_to_plot["Constraint Violation"] = logs_dict["violation_flags"]
+                plot_training_curves(metrics_to_plot, output_path=out_file)
 
         # Aggregate metrics across seeds for this setting
         baseline_rewards = np.array(metrics["PPO Only"]["rewards"])
@@ -1219,118 +1244,40 @@ def main():
                     baseline_success,
                     data["success"],
                     alternative="two-sided").pvalue
-
-            fve = data["first_violation_episode"]
-            fve_mean = float(np.mean(fve)) if fve else 0.0
-            fve_ci = (
-                1.96 * float(np.std(fve, ddof=1)) / np.sqrt(len(fve))
-                if len(fve) > 1
-                else 0.0
-            )
-            mask_vals = data["mask_rate"]
-            mask_rate_mean = float(np.mean(mask_vals)) if mask_vals else 0.0
-            mask_rate_ci = (
-                1.96 * float(np.std(mask_vals, ddof=1)) / np.sqrt(len(mask_vals))
-                if len(mask_vals) > 1
-                else 0.0
-            )
-            adherence_vals = data["adherence_rate"]
-            adherence_mean = float(np.mean(adherence_vals)) if adherence_vals else 0.0
-            adherence_ci = (
-                1.96 * float(np.std(adherence_vals, ddof=1)) / np.sqrt(len(adherence_vals))
-                if len(adherence_vals) > 1
-                else 0.0
-            )
-            coverage_vals = data["coverage"]
-            coverage_mean = float(np.mean(coverage_vals)) if coverage_vals else 0.0
-            coverage_ci = (
-                1.96 * float(np.std(coverage_vals, ddof=1)) / np.sqrt(len(coverage_vals))
-                if len(coverage_vals) > 1
-                else 0.0
-            )
-            min_dist_vals = data["min_dist"]
-            min_dist_mean = float(np.mean(min_dist_vals)) if min_dist_vals else 0.0
-            min_dist_ci = (
-                1.96 * float(np.std(min_dist_vals, ddof=1)) / np.sqrt(len(min_dist_vals))
-                if len(min_dist_vals) > 1
-                else 0.0
-            )
-
-            episode_time_vals = data["episode_time"]
-            episode_time_mean = (
-                float(np.mean(episode_time_vals)) if episode_time_vals else 0.0
-            )
-            episode_time_ci = (
-                1.96 * float(np.std(episode_time_vals, ddof=1)) / np.sqrt(len(episode_time_vals))
-                if len(episode_time_vals) > 1
-                else 0.0
-            )
-            steps_per_sec_vals = data["steps_per_sec"]
-            steps_per_sec_mean = (
-                float(np.mean(steps_per_sec_vals)) if steps_per_sec_vals else 0.0
-            )
-            steps_per_sec_ci = (
-                1.96 * float(np.std(steps_per_sec_vals, ddof=1)) / np.sqrt(len(steps_per_sec_vals))
-                if len(steps_per_sec_vals) > 1
-                else 0.0
-            )
-            wall_time_vals = data["wall_time"]
-            wall_time_mean = (
-                float(np.mean(wall_time_vals)) if wall_time_vals else 0.0
-            )
-            wall_time_ci = (
-                1.96 * float(np.std(wall_time_vals, ddof=1)) / np.sqrt(len(wall_time_vals))
-                if len(wall_time_vals) > 1
-                else 0.0
-            )
+            reward = format_mean_ci(data["rewards"])
+            success = format_mean_ci(data["success"])
+            planner = format_mean_ci(data["planner_pct"], scale=100)
+            mask_rate = format_mean_ci(data["mask_rate"])
+            adherence = format_mean_ci(data["adherence_rate"])
+            coverage = format_mean_ci(data["coverage"])
+            min_dist = format_mean_ci(data["min_dist"])
+            episode_time = format_mean_ci(data["episode_time"])
+            steps_per_sec = format_mean_ci(data["steps_per_sec"])
+            wall_time = format_mean_ci(data["wall_time"])
+            spikes = format_mean_ci(data["spikes"])
+            train_cost = format_mean_ci(data["episode_costs"])
+            violation = format_mean_ci(data["violation_flags"])
+            fve_mean, fve_ci = mean_ci(data["first_violation_episode"])
+            fve_str = f"{fve_mean:.2f} ± {fve_ci:.2f}"
 
             results.append(
                 {
                     "Setting": setting["name"],
                     "Model": name,
-                    "Train Reward Mean": float(np.mean(data["rewards"])),
-                    "Train Reward Std": float(np.std(data["rewards"])),
-                    "Success Mean": float(np.mean(data["success"])),
-                    "Success Std": float(np.std(data["success"])),
-                    "Planner Usage %": float(
-                        np.mean(data["planner_pct"])
-                    ) * 100,
-                    "Mask Rate Mean": mask_rate_mean,
-                    "Mask Rate 95% CI": mask_rate_ci,
-                    "Adherence Rate Mean": adherence_mean,
-                    "Adherence Rate 95% CI": adherence_ci,
-                    "Coverage Mean": coverage_mean,
-                    "Coverage 95% CI": coverage_ci,
-                    "Min Enemy Dist Mean": min_dist_mean,
-                    "Min Enemy Dist 95% CI": min_dist_ci,
-                    "Episode Time Mean": episode_time_mean,
-                    "Episode Time 95% CI": episode_time_ci,
-                    "Steps/s Mean": steps_per_sec_mean,
-                    "Steps/s 95% CI": steps_per_sec_ci,
-                    "Total Time Mean": wall_time_mean,
-                    "Total Time 95% CI": wall_time_ci,
-                    "Intrinsic Spikes": (
-                        float(np.mean(data["spikes"]))
-                        if data["spikes"]
-                        else 0.0
-                    ),
-                    "Train Cost Mean": (
-                        float(np.mean(data["episode_costs"]))
-                        if data["episode_costs"]
-                        else 0.0
-                    ),
-                    "Train Cost Std": (
-                        float(np.std(data["episode_costs"]))
-                        if data["episode_costs"]
-                        else 0.0
-                    ),
-                    "Pr[Jc > d]": (
-                        float(np.mean(data["violation_flags"]))
-                        if data["violation_flags"]
-                        else 0.0
-                    ),
-                    "First Violation Episode Mean": fve_mean,
-                    "First Violation Episode 95% CI": fve_ci,
+                    "Train Reward": reward,
+                    "Success": success,
+                    "Planner Usage %": planner,
+                    "Mask Rate": mask_rate,
+                    "Adherence Rate": adherence,
+                    "Coverage": coverage,
+                    "Min Enemy Dist": min_dist,
+                    "Episode Time": episode_time,
+                    "Steps/s": steps_per_sec,
+                    "Total Time": wall_time,
+                    "Intrinsic Spikes": spikes,
+                    "Train Cost": train_cost,
+                    "Pr[Jc > d]": violation,
+                    "First Violation Episode": fve_str,
                     "Reward p-value": p_reward,
                     "Success p-value": p_success,
                 }
@@ -1343,8 +1290,7 @@ def main():
                     {
                         "Setting": setting["name"],
                         "Model": name,
-                        "Benchmark Reward": float(np.mean(vals)),
-                        "Benchmark Std": float(np.std(vals)),
+                        "Benchmark Reward": format_mean_ci(vals),
                     }
                 )
 

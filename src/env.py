@@ -5,6 +5,7 @@ import gym
 import matplotlib.pyplot as plt
 import numpy as np
 from matplotlib import patches
+from scipy import stats
 
 from .planner import SymbolicPlanner
 
@@ -411,7 +412,13 @@ def evaluate_on_benchmarks(
             obs = np.concatenate([obs_base, np.array([dx, dy], dtype=np.float32)])
             total_reward += reward
         rewards.append(total_reward)
-    return float(np.mean(rewards)), float(np.std(rewards))
+    arr = np.asarray(rewards)
+    mean = float(arr.mean())
+    if len(arr) < 2:
+        ci = 0.0
+    else:
+        ci = float(stats.sem(arr) * stats.t.ppf(0.975, len(arr) - 1))
+    return mean, ci
 
 
 def plot_model_performance(
@@ -422,20 +429,20 @@ def plot_model_performance(
     num_maps: int = 10,
 ):
     avg_rewards = []
-    std_devs = []
+    ci_vals = []
 
     for policy in models:
-        mean_r, std_r = evaluate_on_benchmarks(
+        mean_r, ci_r = evaluate_on_benchmarks(
             env, policy, map_folder, num_maps)
         avg_rewards.append(mean_r)
-        std_devs.append(std_r)
+        ci_vals.append(ci_r)
 
     x = np.arange(len(model_names))
     plt.figure(figsize=(8, 5))
     plt.bar(
         x,
         avg_rewards,
-        yerr=std_devs,
+        yerr=ci_vals,
         capsize=5,
         color=[
             "gray",

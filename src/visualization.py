@@ -21,66 +21,39 @@ def _stack_logs(logs: list[list[float]] | None, name: str) -> pd.DataFrame:
 
 
 def plot_training_curves(
-    reward_logs: list[list[float]],
-    intrinsic_logs: list[list[float]] | None,
-    success_logs: list[list[int]],
+    metrics: dict[str, list[list[float]]],
     output_path: str | None = None,
 ) -> None:
-    """Plot mean extrinsic/intrinsic rewards and success rate across seeds."""
-
-    if reward_logs and not isinstance(reward_logs[0], (list, np.ndarray)):
-        reward_logs = [reward_logs]  # backwards compatibility
-    if intrinsic_logs and intrinsic_logs and not isinstance(
-            intrinsic_logs[0], (list, np.ndarray)):
-        intrinsic_logs = [intrinsic_logs]
-    if success_logs and not isinstance(success_logs[0], (list, np.ndarray)):
-        success_logs = [success_logs]
+    """Plot training metrics across seeds with 95% confidence intervals."""
 
     sns.set(style="darkgrid")
-    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(12, 4))
+    n_metrics = len(metrics)
+    fig, axes = plt.subplots(1, n_metrics, figsize=(6 * n_metrics, 4))
+    if n_metrics == 1:
+        axes = [axes]
 
-    reward_df = _stack_logs(reward_logs, "Value")
-    sns.lineplot(
-        data=reward_df,
-        x="Episode",
-        y="Value",
-        ax=ax1,
-        errorbar=("ci", 95),
-        label="Extrinsic",
-    )
+    for ax, (name, logs) in zip(axes, metrics.items()):
+        if logs and not isinstance(logs[0], (list, np.ndarray)):
+            logs = [logs]
 
-    if intrinsic_logs is not None:
-        intrinsic_df = _stack_logs(intrinsic_logs, "Value")
+        if name.lower().startswith("success"):
+            processed = [np.cumsum(flags) / (np.arange(len(flags)) + 1) for flags in logs]
+            df = _stack_logs(processed, "Value")
+            ax.set_ylim(0, 1)
+            ax.set_ylabel("Success Rate")
+        else:
+            df = _stack_logs(logs, "Value")
+            ax.set_ylabel(name)
+
         sns.lineplot(
-            data=intrinsic_df,
+            data=df,
             x="Episode",
             y="Value",
-            ax=ax1,
+            ax=ax,
             errorbar=("ci", 95),
-            label="Intrinsic",
         )
-
-    ax1.set_xlabel("Episode")
-    ax1.set_ylabel("Reward")
-    ax1.set_title("Training Rewards")
-    ax1.legend()
-
-    success_rates = []
-    for flags in success_logs:
-        success_rates.append(np.cumsum(flags) / (np.arange(len(flags)) + 1))
-    success_df = _stack_logs(success_rates, "Value")
-    sns.lineplot(
-        data=success_df,
-        x="Episode",
-        y="Value",
-        ax=ax2,
-        errorbar=("ci", 95),
-        color="green",
-    )
-    ax2.set_xlabel("Episode")
-    ax2.set_ylabel("Success Rate")
-    ax2.set_ylim(0, 1)
-    ax2.set_title("Success Rate")
+        ax.set_xlabel("Episode")
+        ax.set_title(name)
 
     plt.tight_layout()
     if output_path is not None:
