@@ -175,7 +175,7 @@ def train_agent(
                 action, logprob, value = policy.act(state_tensor)
                 ppo_decisions += 1
 
-            next_obs, ext_reward, done, _, info = env.step(
+            next_obs, ext_reward, cost_t, done, _, info = env.step(
                 action, terrain_decay=terrain_decay
             )
             x, y = env.agent_pos

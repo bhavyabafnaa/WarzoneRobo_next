@@ -26,6 +26,8 @@ class GridWorldICM:
         self.reward_clip = reward_clip
         self.max_steps = max_steps
         self.survival_reward = survival_reward
+        # Track cumulative cost over an episode
+        self.episode_cost = 0.0
         if seed is None:
             seed = 0
         self.seed(seed)
@@ -67,6 +69,7 @@ class GridWorldICM:
 
         self.agent_pos = [0, 0]
         self.steps = 0
+        self.episode_cost = 0.0
 
         return self._get_obs(), {}
 
@@ -139,21 +142,25 @@ class GridWorldICM:
                         )
 
         self.update_cost_map()
-        cost = np.clip(self.cost_map[x][y], 0, 1)
+        cost_t = np.clip(self.cost_map[x][y], 0, 1)
         risk = np.clip(self.risk_map[x][y], 0, 1)
 
-        reward = self.survival_reward - cost - risk
+        reward = self.survival_reward - cost_t - risk
         terrain = self.terrain_map[x][y]
         if terrain == "mud":
             reward -= 0.2 * terrain_decay
         elif terrain == "water":
             reward -= 0.1 * terrain_decay
 
+        # accumulate episode cost
+        self.episode_cost += cost_t
+
         if self.mine_map[x][y]:
             reward -= 2
             return (
                 self._get_obs(),
                 self._clip_reward(reward),
+                cost_t,
                 True,
                 False,
                 {"dead": True},
@@ -165,6 +172,7 @@ class GridWorldICM:
                 return (
                     self._get_obs(),
                     self._clip_reward(reward),
+                    cost_t,
                     True,
                     False,
                     {"dead": True},
@@ -172,7 +180,14 @@ class GridWorldICM:
 
         done = self.steps >= self.max_steps
 
-        return self._get_obs(), self._clip_reward(reward), done, False, {}
+        return (
+            self._get_obs(),
+            self._clip_reward(reward),
+            cost_t,
+            done,
+            False,
+            {},
+        )
 
     def _clip_reward(self, r: float) -> float:
         return np.clip(r, self.reward_clip[0], self.reward_clip[1])
@@ -282,7 +297,7 @@ def visualize_paths_on_benchmark_maps(
         while not done:
             state_tensor = torch.tensor(obs, dtype=torch.float32).unsqueeze(0)
             action, _, _ = policy.act(state_tensor)
-            obs, reward, done, _, _ = env.step(action)
+            obs, reward, cost_t, done, _, _ = env.step(action)
             path.append(tuple(env.agent_pos))
             rewards.append(reward)
 
@@ -367,7 +382,7 @@ def evaluate_on_benchmarks(
         while not done:
             state_tensor = torch.tensor(obs, dtype=torch.float32).unsqueeze(0)
             action, _, _ = policy.act(state_tensor)
-            obs, reward, done, _, _ = env.step(action)
+            obs, reward, cost_t, done, _, _ = env.step(action)
             total_reward += reward
         rewards.append(total_reward)
     return float(np.mean(rewards)), float(np.std(rewards))

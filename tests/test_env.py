@@ -15,8 +15,10 @@ def test_step_boundaries_and_rewards():
     assert env.agent_pos == [0, 0]
 
     # move right into cost/risk cell
-    _, reward, _, _, _ = env.step(3)
+    _, reward, cost, _, _, _ = env.step(3)
     assert env.agent_pos == [0, 1]
+    assert np.isclose(cost, 0.6)
+    assert np.isclose(env.episode_cost, 0.6)
     assert reward <= -0.7
 
 
@@ -51,5 +53,5 @@ def test_survival_reward_positive():
     env.risk_map = np.zeros((2, 2))
     env.mine_map = np.zeros((2, 2), dtype=bool)
     env.enemy_positions = []
-    _, reward, _, _, _ = env.step(1)
+    _, reward, _cost, _, _, _ = env.step(1)
     assert reward > 0
