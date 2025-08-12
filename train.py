@@ -146,7 +146,7 @@ def parse_args():
         "--seeds",
         type=int,
         nargs="+",
-        default=None,
+        default=[10],
         help="List of seeds or single integer count",
     )
     parser.add_argument(
@@ -256,7 +256,7 @@ def main():
     if args.seeds:
         seeds = args.seeds
         if len(seeds) == 1:
-            seeds = list(range(seeds[0]))
+            seeds = range(seeds[0])
     else:
         seeds = [args.seed]
 

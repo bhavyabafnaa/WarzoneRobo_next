@@ -1,5 +1,4 @@
 import os
-import os
 from torch import optim
 
 from src.env import GridWorldICM
@@ -17,28 +16,32 @@ def test_short_training_loop(tmp_path):
 
     input_dim = 4 * env.grid_size * env.grid_size + 2
     action_dim = 4
-    policy = PPOPolicy(input_dim, action_dim)
-    icm = ICMModule(input_dim, action_dim)
-    planner = SymbolicPlanner(env.cost_map, env.risk_map, env.np_random)
-    opt = optim.Adam(policy.parameters(), lr=1e-3)
+    runs = []
+    for run_seed in range(10):
+        policy = PPOPolicy(input_dim, action_dim)
+        icm = ICMModule(input_dim, action_dim)
+        planner = SymbolicPlanner(env.cost_map, env.risk_map, env.np_random)
+        opt = optim.Adam(policy.parameters(), lr=1e-3)
 
-    train_agent(
-        env,
-        policy,
-        icm,
-        planner,
-        opt,
-        opt,
-        use_icm=False,
-        use_planner=False,
-        num_episodes=1,
-        eta_lambda=0.05,
-        cost_limit=0.5,
-        c1=1.0,
-        c2=0.5,
-        c3=0.01,
-
-    )
+        train_agent(
+            env,
+            policy,
+            icm,
+            planner,
+            opt,
+            opt,
+            use_icm=False,
+            use_planner=False,
+            num_episodes=1,
+            eta_lambda=0.05,
+            cost_limit=0.5,
+            c1=1.0,
+            c2=0.5,
+            c3=0.01,
+            seed=run_seed,
+        )
+        runs.append(True)
+    assert len(runs) == 10
 
 
 def test_training_one_episode_metrics(tmp_path):
@@ -51,28 +54,34 @@ def test_training_one_episode_metrics(tmp_path):
 
     input_dim = 4 * env.grid_size * env.grid_size + 2
     action_dim = 4
-    policy = PPOPolicy(input_dim, action_dim)
-    icm = ICMModule(input_dim, action_dim)
-    planner = SymbolicPlanner(env.cost_map, env.risk_map, env.np_random)
-    opt = optim.Adam(policy.parameters(), lr=1e-3)
+    metrics_list = []
+    for run_seed in range(10):
+        policy = PPOPolicy(input_dim, action_dim)
+        icm = ICMModule(input_dim, action_dim)
+        planner = SymbolicPlanner(env.cost_map, env.risk_map, env.np_random)
+        opt = optim.Adam(policy.parameters(), lr=1e-3)
 
-    metrics = train_agent(
-        env,
-        policy,
-        icm,
-        planner,
-        opt,
-        opt,
-        use_icm=False,
-        use_planner=False,
-        num_episodes=1,
-        eta_lambda=cfg.get("eta_lambda", 0.01),
-        cost_limit=cfg.get("cost_limit", 1.0),
-        c1=cfg.get("c1", 1.0),
-        c2=cfg.get("c2", 0.5),
-        c3=cfg.get("c3", 0.01),
-    )
+        metrics = train_agent(
+            env,
+            policy,
+            icm,
+            planner,
+            opt,
+            opt,
+            use_icm=False,
+            use_planner=False,
+            num_episodes=1,
+            eta_lambda=cfg.get("eta_lambda", 0.01),
+            cost_limit=cfg.get("cost_limit", 1.0),
+            c1=cfg.get("c1", 1.0),
+            c2=cfg.get("c2", 0.5),
+            c3=cfg.get("c3", 0.01),
+            seed=run_seed,
+        )
+        metrics_list.append(metrics)
 
+    assert len(metrics_list) == 10
+    metrics = metrics_list[0]
     if len(metrics) == 19:
         (
             rewards,
@@ -141,28 +150,30 @@ def test_success_flag_survival(tmp_path):
 
     input_dim = 4 * env.grid_size * env.grid_size + 2
     action_dim = 4
-    policy = PPOPolicy(input_dim, action_dim)
-    icm = ICMModule(input_dim, action_dim)
-    planner = SymbolicPlanner(env.cost_map, env.risk_map, env.np_random)
-    opt = optim.Adam(policy.parameters(), lr=1e-3)
+    for run_seed in range(10):
+        env.reset(seed=run_seed, load_map_path="maps/map_00.npz")
+        policy = PPOPolicy(input_dim, action_dim)
+        icm = ICMModule(input_dim, action_dim)
+        planner = SymbolicPlanner(env.cost_map, env.risk_map, env.np_random)
+        opt = optim.Adam(policy.parameters(), lr=1e-3)
 
-    metrics = train_agent(
-        env,
-        policy,
-        icm,
-        planner,
-        opt,
-        opt,
-        use_icm=False,
-        use_planner=False,
-        num_episodes=1,
-        reset_env=False,
-        eta_lambda=0.05,
-        cost_limit=0.5,
-        c1=1.0,
-        c2=0.5,
-        c3=0.01,
-    )
+        metrics = train_agent(
+            env,
+            policy,
+            icm,
+            planner,
+            opt,
+            opt,
+            use_icm=False,
+            use_planner=False,
+            num_episodes=1,
+            reset_env=False,
+            eta_lambda=0.05,
+            cost_limit=0.5,
+            c1=1.0,
+            c2=0.5,
+            c3=0.01,
+        )
 
-    _, _, _, _, _, _, success_flags, *_rest = metrics
-    assert success_flags == [1]
+        _, _, _, _, _, _, success_flags, *_rest = metrics
+        assert success_flags == [1]
