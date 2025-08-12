@@ -6,6 +6,8 @@ import matplotlib.pyplot as plt
 import numpy as np
 from matplotlib import patches
 
+from .planner import SymbolicPlanner
+
 
 class GridWorldICM:
     """Simple grid world used by training script."""
@@ -277,6 +279,7 @@ def visualize_paths_on_benchmark_maps(
     num_maps: int = 9,
     grid_cols: int = 3,
     save: bool = False,
+    H: int = 8,
 ):
     from matplotlib.collections import LineCollection
     import torch
@@ -290,6 +293,11 @@ def visualize_paths_on_benchmark_maps(
     for i in range(num_maps):
         map_path = os.path.join(map_folder, f"map_{i:02d}.npz")
         obs, _ = env.reset(load_map_path=map_path)
+        planner = SymbolicPlanner(env.cost_map, env.risk_map, env.np_random)
+        g = planner.get_subgoal(env.agent_pos, H)
+        subgoal_timer = H
+        dx, dy = g[0] - env.agent_pos[0], g[1] - env.agent_pos[1]
+        obs = np.concatenate([obs, np.array([dx, dy], dtype=np.float32)])
         path = [tuple(env.agent_pos)]
         rewards: List[float] = []
 
@@ -297,7 +305,13 @@ def visualize_paths_on_benchmark_maps(
         while not done:
             state_tensor = torch.tensor(obs, dtype=torch.float32).unsqueeze(0)
             action, _, _, _ = policy.act(state_tensor)
-            obs, reward, cost_t, done, _, _ = env.step(action)
+            obs_base, reward, cost_t, done, _, _ = env.step(action)
+            subgoal_timer -= 1
+            if subgoal_timer <= 0 or tuple(env.agent_pos) == g:
+                g = planner.get_subgoal(env.agent_pos, H)
+                subgoal_timer = H
+            dx, dy = g[0] - env.agent_pos[0], g[1] - env.agent_pos[1]
+            obs = np.concatenate([obs_base, np.array([dx, dy], dtype=np.float32)])
             path.append(tuple(env.agent_pos))
             rewards.append(reward)
 
@@ -371,18 +385,30 @@ def evaluate_on_benchmarks(
     policy,
     map_folder: str = "maps/",
     num_maps: int = 10,
+    H: int = 8,
 ) -> Tuple[float, float]:
     import torch
     rewards = []
     for i in range(num_maps):
         map_path = f"{map_folder}/map_{i:02d}.npz"
         obs, _ = env.reset(load_map_path=map_path)
+        planner = SymbolicPlanner(env.cost_map, env.risk_map, env.np_random)
+        g = planner.get_subgoal(env.agent_pos, H)
+        subgoal_timer = H
+        dx, dy = g[0] - env.agent_pos[0], g[1] - env.agent_pos[1]
+        obs = np.concatenate([obs, np.array([dx, dy], dtype=np.float32)])
         done = False
         total_reward = 0.0
         while not done:
             state_tensor = torch.tensor(obs, dtype=torch.float32).unsqueeze(0)
             action, _, _, _ = policy.act(state_tensor)
-            obs, reward, cost_t, done, _, _ = env.step(action)
+            obs_base, reward, cost_t, done, _, _ = env.step(action)
+            subgoal_timer -= 1
+            if subgoal_timer <= 0 or tuple(env.agent_pos) == g:
+                g = planner.get_subgoal(env.agent_pos, H)
+                subgoal_timer = H
+            dx, dy = g[0] - env.agent_pos[0], g[1] - env.agent_pos[1]
+            obs = np.concatenate([obs_base, np.array([dx, dy], dtype=np.float32)])
             total_reward += reward
         rewards.append(total_reward)
     return float(np.mean(rewards)), float(np.std(rewards))

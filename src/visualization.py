@@ -6,6 +6,8 @@ import seaborn as sns
 import torch
 import imageio
 
+from .planner import SymbolicPlanner
+
 
 def _stack_logs(logs: list[list[float]] | None, name: str) -> pd.DataFrame:
     """Convert a list of episode logs into a long-form DataFrame."""
@@ -167,16 +169,28 @@ def render_episode_video(
         policy,
         output_path: str,
         max_steps: int = 100,
-        seed: int | None = None) -> None:
+        seed: int | None = None,
+        H: int = 8) -> None:
     """Run one episode and save a GIF of the agent interacting with the env."""
     obs, _ = env.reset(seed=seed)
+    planner = SymbolicPlanner(env.cost_map, env.risk_map, env.np_random)
+    g = planner.get_subgoal(env.agent_pos, H)
+    subgoal_timer = H
+    dx, dy = g[0] - env.agent_pos[0], g[1] - env.agent_pos[1]
+    obs = np.concatenate([obs, np.array([dx, dy], dtype=np.float32)])
     frames = [env.render()]
     done = False
     step = 0
     while not done and step < max_steps:
         state_tensor = torch.tensor(obs, dtype=torch.float32).unsqueeze(0)
         action, _, _, _ = policy.act(state_tensor)
-        obs, _, _, done, _, _ = env.step(action)
+        obs_base, _, _, done, _, _ = env.step(action)
+        subgoal_timer -= 1
+        if subgoal_timer <= 0 or tuple(env.agent_pos) == g:
+            g = planner.get_subgoal(env.agent_pos, H)
+            subgoal_timer = H
+        dx, dy = g[0] - env.agent_pos[0], g[1] - env.agent_pos[1]
+        obs = np.concatenate([obs_base, np.array([dx, dy], dtype=np.float32)])
         frames.append(env.render())
         step += 1
 
