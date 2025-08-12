@@ -120,6 +120,7 @@ def train_agent(
     planner_usage_rate = []
     mask_counts = []
     mask_rates = []
+    adherence_rates = []
     coverage_log = []
     min_dist_log = []
     episode_costs = []
@@ -187,6 +188,7 @@ def train_agent(
                             (1 - (episode / num_episodes)))
         mask_count = 0
         min_dist = float('inf')
+        adherence_count = 0
 
         if final_beta is not None:
             decay_end = max(1, int(num_episodes * 2 / 3))
@@ -198,6 +200,9 @@ def train_agent(
         while not done:
             prev_obs = obs.copy()
             state_tensor = torch.tensor(obs, dtype=torch.float32).unsqueeze(0)
+
+            # Planner suggestion for adherence tracking (not executed yet)
+            planner_action = planner.get_safe_subgoal(env.agent_pos)
 
             x, y = env.agent_pos
             directions = {0: (-1, 0), 1: (1, 0), 2: (0, -1), 3: (0, 1)}
@@ -230,7 +235,7 @@ def train_agent(
 
             used_planner = False
             if use_planner and candidate_risks[action] >= tau:
-                action = planner.get_safe_subgoal(env.agent_pos)
+                action = planner_action
                 used_planner = True
                 logprob = torch.tensor([0.0])
                 value = torch.tensor(0.0)
@@ -239,6 +244,9 @@ def train_agent(
                 mask_count += 1
             else:
                 ppo_decisions += 1
+
+            if action == planner_action:
+                adherence_count += 1
 
             prev_dist = abs(g[0] - env.agent_pos[0]) + abs(g[1] - env.agent_pos[1])
 
@@ -427,6 +435,8 @@ def train_agent(
         mask_counts.append(mask_count)
         mask_rate = mask_count / max(step_count, 1)
         mask_rates.append(mask_rate)
+        adherence_rate = adherence_count / max(step_count, 1)
+        adherence_rates.append(adherence_rate)
         coverage = int(np.count_nonzero(visit_count))
         coverage_log.append(coverage)
         min_dist_val = min_dist if min_dist < float('inf') else env.grid_size * 2
@@ -442,6 +452,7 @@ def train_agent(
                 logger.add_scalar("episode_cost", Jc, episode)
                 logger.add_scalar("constraint_violation", violation_flag, episode)
                 logger.add_scalar("mask_rate", mask_rate, episode)
+                logger.add_scalar("adherence_rate", adherence_rate, episode)
                 logger.add_scalar("coverage", coverage, episode)
                 logger.add_scalar("min_enemy_dist", min_dist_val, episode)
                 logger.add_scalar(
@@ -457,10 +468,11 @@ def train_agent(
                         "success_rate": success_rate,
                         "lambda_val": lambda_val,
                         "episode_cost": Jc,
-                        "constraint_violation": violation_flag,
-                        "mask_rate": mask_rate,
-                        "coverage": coverage,
-                        "min_enemy_dist": min_dist_val,
+                    "constraint_violation": violation_flag,
+                    "mask_rate": mask_rate,
+                    "adherence_rate": adherence_rate,
+                    "coverage": coverage,
+                    "min_enemy_dist": min_dist_val,
                         "first_violation_episode": (
                             first_violation_episode if first_violation_episode is not None else num_episodes
                         ),
@@ -476,6 +488,7 @@ def train_agent(
             f"Planner: {planner_decisions} | "
             f"Masks: {mask_count} | "
             f"Mask Rate: {mask_rate:.2f} | "
+            f"Adherence: {adherence_rate:.2f} | "
             f"Coverage: {coverage} | "
             f"Success: {success_rate * 100:.1f}% | "
             f"Lambda: {lambda_val:.2f}"
@@ -495,6 +508,7 @@ def train_agent(
         planner_usage_rate,
         mask_counts,
         mask_rates,
+        adherence_rates,
         coverage_log,
         min_dist_log,
         episode_costs,

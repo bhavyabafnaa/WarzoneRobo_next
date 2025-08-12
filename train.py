@@ -319,6 +319,7 @@ def main():
                 "success": [],
                 "planner_pct": [],
                 "mask_rate": [],
+                "adherence_rate": [],
                 "spikes": [],
                 "episode_costs": [],
                 "violation_flags": [],
@@ -331,6 +332,7 @@ def main():
                 "success": [],
                 "planner_pct": [],
                 "mask_rate": [],
+                "adherence_rate": [],
                 "spikes": [],
                 "episode_costs": [],
                 "violation_flags": [],
@@ -343,6 +345,7 @@ def main():
                 "success": [],
                 "planner_pct": [],
                 "mask_rate": [],
+                "adherence_rate": [],
                 "spikes": [],
                 "episode_costs": [],
                 "violation_flags": [],
@@ -355,6 +358,7 @@ def main():
                 "success": [],
                 "planner_pct": [],
                 "mask_rate": [],
+                "adherence_rate": [],
                 "spikes": [],
                 "episode_costs": [],
                 "violation_flags": [],
@@ -367,6 +371,7 @@ def main():
                 "success": [],
                 "planner_pct": [],
                 "mask_rate": [],
+                "adherence_rate": [],
                 "spikes": [],
                 "episode_costs": [],
                 "violation_flags": [],
@@ -379,6 +384,7 @@ def main():
                 "success": [],
                 "planner_pct": [],
                 "mask_rate": [],
+                "adherence_rate": [],
                 "spikes": [],
                 "episode_costs": [],
                 "violation_flags": [],
@@ -471,6 +477,7 @@ def main():
                 planner_rate_ppo_only,
                 mask_counts_ppo_only,
                 mask_rates_ppo_only,
+                adherence_rates_ppo_only,
                 coverage_ppo_only,
                 min_dists_ppo_only,
                 episode_costs_ppo_only,
@@ -515,6 +522,8 @@ def main():
                 float(np.mean(planner_rate_ppo_only)))
             metrics["PPO Only"]["mask_rate"].append(
                 float(np.mean(mask_rates_ppo_only)))
+            metrics["PPO Only"]["adherence_rate"].append(
+                float(np.mean(adherence_rates_ppo_only)))
             metrics["PPO Only"]["min_dist"].append(
                 float(np.mean(min_dists_ppo_only)))
             metrics["PPO Only"]["spikes"].append(
@@ -567,6 +576,7 @@ def main():
                     planner_rate_icm,
                 mask_counts_icm,
                 mask_rates_icm,
+                adherence_rates_icm,
                 coverage_icm,
                 min_dists_icm,
                 episode_costs_icm,
@@ -612,6 +622,8 @@ def main():
                     float(np.mean(planner_rate_icm)))
                 metrics["PPO + ICM"]["mask_rate"].append(
                     float(np.mean(mask_rates_icm)))
+                metrics["PPO + ICM"]["adherence_rate"].append(
+                    float(np.mean(adherence_rates_icm)))
                 metrics["PPO + ICM"]["min_dist"].append(
                     float(np.mean(min_dists_icm)))
                 metrics["PPO + ICM"]["spikes"].append(
@@ -665,6 +677,7 @@ def main():
                 planner_rate_pc,
                 mask_counts_pc,
                 mask_rates_pc,
+                adherence_rates_pc,
                 coverage_pc,
                 min_dists_pc,
                 episode_costs_pc,
@@ -708,6 +721,8 @@ def main():
                 float(np.mean(planner_rate_pc)))
             metrics["PPO + PC"]["mask_rate"].append(
                 float(np.mean(mask_rates_pc)))
+            metrics["PPO + PC"]["adherence_rate"].append(
+                float(np.mean(adherence_rates_pc)))
             metrics["PPO + PC"]["min_dist"].append(
                 float(np.mean(min_dists_pc)))
             metrics["PPO + PC"]["spikes"].append(
@@ -760,6 +775,7 @@ def main():
                     planner_rate_plan,
                     mask_counts_icm_plan,
                     mask_rates_icm_plan,
+                    adherence_rates_icm_plan,
                     coverage_icm_plan,
                     min_dists_icm_plan,
                     episode_costs_icm_plan,
@@ -805,6 +821,8 @@ def main():
                     float(np.mean(planner_rate_plan)))
                 metrics["PPO + ICM + Planner"]["mask_rate"].append(
                     float(np.mean(mask_rates_icm_plan)))
+                metrics["PPO + ICM + Planner"]["adherence_rate"].append(
+                    float(np.mean(adherence_rates_icm_plan)))
                 metrics["PPO + ICM + Planner"]["min_dist"].append(
                     float(np.mean(min_dists_icm_plan)))
                 metrics["PPO + ICM + Planner"]["spikes"].append(
@@ -876,6 +894,7 @@ def main():
                 planner_rate_count,
                 mask_counts_count,
                 mask_rates_count,
+                adherence_rates_count,
                 coverage_count,
                 min_dists_count,
                 episode_costs_count,
@@ -922,6 +941,8 @@ def main():
                 float(np.mean(planner_rate_count)))
             metrics["PPO + count"]["mask_rate"].append(
                 float(np.mean(mask_rates_count)))
+            metrics["PPO + count"]["adherence_rate"].append(
+                float(np.mean(adherence_rates_count)))
             metrics["PPO + count"]["min_dist"].append(
                 float(np.mean(min_dists_count)))
             metrics["PPO + count"]["spikes"].append(
@@ -976,6 +997,7 @@ def main():
                     planner_rate_rnd,
                     mask_counts_rnd,
                     mask_rates_rnd,
+                    adherence_rates_rnd,
                     coverage_rnd,
                     min_dists_rnd,
                     episode_costs_rnd,
@@ -1022,6 +1044,8 @@ def main():
                     float(np.mean(planner_rate_rnd)))
                 metrics["PPO + RND"]["mask_rate"].append(
                     float(np.mean(mask_rates_rnd)))
+                metrics["PPO + RND"]["adherence_rate"].append(
+                    float(np.mean(adherence_rates_rnd)))
                 metrics["PPO + RND"]["min_dist"].append(
                     float(np.mean(min_dists_rnd)))
                 metrics["PPO + RND"]["spikes"].append(
@@ -1138,6 +1162,13 @@ def main():
                 if len(mask_vals) > 1
                 else 0.0
             )
+            adherence_vals = data["adherence_rate"]
+            adherence_mean = float(np.mean(adherence_vals)) if adherence_vals else 0.0
+            adherence_ci = (
+                1.96 * float(np.std(adherence_vals, ddof=1)) / np.sqrt(len(adherence_vals))
+                if len(adherence_vals) > 1
+                else 0.0
+            )
             coverage_vals = data["coverage"]
             coverage_mean = float(np.mean(coverage_vals)) if coverage_vals else 0.0
             coverage_ci = (
@@ -1166,6 +1197,8 @@ def main():
                     ) * 100,
                     "Mask Rate Mean": mask_rate_mean,
                     "Mask Rate 95% CI": mask_rate_ci,
+                    "Adherence Rate Mean": adherence_mean,
+                    "Adherence Rate 95% CI": adherence_ci,
                     "Coverage Mean": coverage_mean,
                     "Coverage 95% CI": coverage_ci,
                     "Min Enemy Dist Mean": min_dist_mean,
