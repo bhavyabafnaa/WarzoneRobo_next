@@ -21,6 +21,9 @@ class GridWorldICM:
         reward_clip: Tuple[float, float] = (-10, 100),
         max_steps: int = 100,
         survival_reward: float = 0.05,
+        enemy_speed: int = 1,
+        enemy_policy: str = "random",
+        mine_density: float = 0.05,
         seed: int | None = None,
     ) -> None:
         self.grid_size = grid_size
@@ -29,6 +32,9 @@ class GridWorldICM:
         self.reward_clip = reward_clip
         self.max_steps = max_steps
         self.survival_reward = survival_reward
+        self.enemy_speed = enemy_speed
+        self.enemy_policy = enemy_policy
+        self.mine_density = mine_density
         # Track cumulative cost over an episode
         self.episode_cost = 0.0
         if seed is None:
@@ -57,7 +63,7 @@ class GridWorldICM:
             self.terrain_map = np.full(
                 (self.grid_size, self.grid_size), "normal")
             self.mine_map = self.np_random.random(
-                (self.grid_size, self.grid_size)) < 0.05
+                (self.grid_size, self.grid_size)) < self.mine_density
             self.terrain_map[self.np_random.random(
                 (self.grid_size, self.grid_size)) < 0.15] = "mud"
             self.terrain_map[self.np_random.random(
@@ -84,6 +90,15 @@ class GridWorldICM:
         self.mine_map = data["mine_map"]
         self.enemy_positions = data["enemy_positions"].tolist()
         self.grid_size = self.cost_map.shape[0]
+        self.enemy_speed = int(data["enemy_speed"]) if "enemy_speed" in data else 1
+        self.enemy_policy = (
+            str(data["enemy_policy"])
+            if "enemy_policy" in data
+            else "random"
+        )
+        self.mine_density = (
+            float(data["mine_density"]) if "mine_density" in data else 0.05
+        )
 
     def save_map(self, filepath: str = "map_data.npz") -> None:
         np.savez_compressed(
@@ -93,6 +108,9 @@ class GridWorldICM:
             terrain_map=self.terrain_map,
             mine_map=self.mine_map,
             enemy_positions=np.array(self.enemy_positions),
+            enemy_speed=self.enemy_speed,
+            enemy_policy=self.enemy_policy,
+            mine_density=self.mine_density,
         )
 
     def update_cost_map(self) -> None:
@@ -129,9 +147,17 @@ class GridWorldICM:
         self.steps += 1
 
         for enemy in self.enemy_positions:
-            dx, dy = self.np_random.choice([-1, 0, 1], size=2)
-            enemy[0] = np.clip(enemy[0] + dx, 0, self.grid_size - 1)
-            enemy[1] = np.clip(enemy[1] + dy, 0, self.grid_size - 1)
+            if self.enemy_policy == "aggressive":
+                dx = np.sign(self.agent_pos[0] - enemy[0]) * self.enemy_speed
+                dy = np.sign(self.agent_pos[1] - enemy[1]) * self.enemy_speed
+            elif self.enemy_policy == "stationary":
+                dx = dy = 0
+            else:
+                dx, dy = self.np_random.choice([-1, 0, 1], size=2)
+                dx *= self.enemy_speed
+                dy *= self.enemy_speed
+            enemy[0] = int(np.clip(enemy[0] + dx, 0, self.grid_size - 1))
+            enemy[1] = int(np.clip(enemy[1] + dy, 0, self.grid_size - 1))
 
         if self.dynamic_risk:
             self.risk_map *= 0.95
@@ -349,25 +375,31 @@ def visualize_paths_on_benchmark_maps(
 
 def export_benchmark_maps(
     env: GridWorldICM,
-    num_train: int = 15,
-    num_test: int = 5,
+    num_train: int = 20,
+    num_test: int = 10,
+    num_ood: int = 10,
     train_folder: str = "train_maps/",
     test_folder: str = "test_maps/",
+    ood_folder: str = "ood_maps/",
 ) -> None:
-    """Generate benchmark maps for training and testing.
+    """Generate benchmark maps for training, testing, and OOD evaluation.
 
     Parameters
     ----------
     env : GridWorldICM
         Environment instance used to generate the maps.
     num_train : int, optional
-        Number of training maps to create. Defaults to ``15``.
+        Number of training maps to create. Defaults to ``20``.
     num_test : int, optional
-        Number of test maps to create. Defaults to ``5``.
+        Number of test maps to create. Defaults to ``10``.
+    num_ood : int, optional
+        Number of OOD maps to create. Defaults to ``10``.
     train_folder : str, optional
         Directory where training maps are saved.
     test_folder : str, optional
         Directory where test maps are saved.
+    ood_folder : str, optional
+        Directory where OOD maps are saved.
     """
 
     os.makedirs(train_folder, exist_ok=True)
@@ -380,6 +412,23 @@ def export_benchmark_maps(
         env.reset(seed=num_train + i)
         env.save_map(os.path.join(test_folder, f"map_{i:02d}.npz"))
 
+    os.makedirs(ood_folder, exist_ok=True)
+    for i in range(num_ood):
+        if i % 2 == 0:
+            env.mine_density = 0.1
+            env.enemy_speed = 2
+            env.enemy_policy = "aggressive"
+        else:
+            env.mine_density = 0.02
+            env.enemy_speed = 1
+            env.enemy_policy = "stationary"
+        env.reset(seed=num_train + num_test + i)
+        env.save_map(os.path.join(ood_folder, f"map_{i:02d}.npz"))
+
+    env.mine_density = 0.05
+    env.enemy_speed = 1
+    env.enemy_policy = "random"
+
 
 def evaluate_on_benchmarks(
     env: GridWorldICM,
@@ -387,38 +436,47 @@ def evaluate_on_benchmarks(
     map_folder: str = "maps/",
     num_maps: int = 10,
     H: int = 8,
-) -> Tuple[float, float]:
+    ood_map_folder: str | None = None,
+    num_ood_maps: int = 0,
+) -> Tuple[float, float] | Tuple[Tuple[float, float], Tuple[float, float]]:
     import torch
-    rewards = []
-    for i in range(num_maps):
-        map_path = f"{map_folder}/map_{i:02d}.npz"
-        obs, _ = env.reset(load_map_path=map_path)
-        planner = SymbolicPlanner(env.cost_map, env.risk_map, env.np_random)
-        g = planner.get_subgoal(env.agent_pos, H)
-        subgoal_timer = H
-        dx, dy = g[0] - env.agent_pos[0], g[1] - env.agent_pos[1]
-        obs = np.concatenate([obs, np.array([dx, dy], dtype=np.float32)])
-        done = False
-        total_reward = 0.0
-        while not done:
-            state_tensor = torch.tensor(obs, dtype=torch.float32).unsqueeze(0)
-            action, _, _, _ = policy.act(state_tensor)
-            obs_base, reward, cost_t, done, _, _ = env.step(action)
-            subgoal_timer -= 1
-            if subgoal_timer <= 0 or tuple(env.agent_pos) == g:
-                g = planner.get_subgoal(env.agent_pos, H)
-                subgoal_timer = H
+    def _evaluate(folder: str, count: int) -> Tuple[float, float]:
+        rewards = []
+        for i in range(count):
+            map_path = f"{folder}/map_{i:02d}.npz"
+            obs, _ = env.reset(load_map_path=map_path)
+            planner = SymbolicPlanner(env.cost_map, env.risk_map, env.np_random)
+            g = planner.get_subgoal(env.agent_pos, H)
+            subgoal_timer = H
             dx, dy = g[0] - env.agent_pos[0], g[1] - env.agent_pos[1]
-            obs = np.concatenate([obs_base, np.array([dx, dy], dtype=np.float32)])
-            total_reward += reward
-        rewards.append(total_reward)
-    arr = np.asarray(rewards)
-    mean = float(arr.mean())
-    if len(arr) < 2:
-        ci = 0.0
-    else:
-        ci = float(stats.sem(arr) * stats.t.ppf(0.975, len(arr) - 1))
-    return mean, ci
+            obs = np.concatenate([obs, np.array([dx, dy], dtype=np.float32)])
+            done = False
+            total_reward = 0.0
+            while not done:
+                state_tensor = torch.tensor(obs, dtype=torch.float32).unsqueeze(0)
+                action, _, _, _ = policy.act(state_tensor)
+                obs_base, reward, cost_t, done, _, _ = env.step(action)
+                subgoal_timer -= 1
+                if subgoal_timer <= 0 or tuple(env.agent_pos) == g:
+                    g = planner.get_subgoal(env.agent_pos, H)
+                    subgoal_timer = H
+                dx, dy = g[0] - env.agent_pos[0], g[1] - env.agent_pos[1]
+                obs = np.concatenate([obs_base, np.array([dx, dy], dtype=np.float32)])
+                total_reward += reward
+            rewards.append(total_reward)
+        arr = np.asarray(rewards)
+        mean = float(arr.mean())
+        if len(arr) < 2:
+            ci = 0.0
+        else:
+            ci = float(stats.sem(arr) * stats.t.ppf(0.975, len(arr) - 1))
+        return mean, ci
+
+    id_result = _evaluate(map_folder, num_maps)
+    if ood_map_folder and num_ood_maps > 0:
+        ood_result = _evaluate(ood_map_folder, num_ood_maps)
+        return id_result, ood_result
+    return id_result
 
 
 def plot_model_performance(
@@ -427,27 +485,66 @@ def plot_model_performance(
     env: GridWorldICM,
     map_folder: str = "maps/",
     num_maps: int = 10,
+    ood_map_folder: str | None = None,
+    num_ood_maps: int = 0,
 ):
-    avg_rewards = []
-    ci_vals = []
+    avg_rewards: List[float] = []
+    ci_vals: List[float] = []
+    avg_rewards_ood: List[float] = []
+    ci_vals_ood: List[float] = []
 
     for policy in models:
-        mean_r, ci_r = evaluate_on_benchmarks(
-            env, policy, map_folder, num_maps)
-        avg_rewards.append(mean_r)
-        ci_vals.append(ci_r)
+        if ood_map_folder and num_ood_maps > 0:
+            id_res, ood_res = evaluate_on_benchmarks(
+                env,
+                policy,
+                map_folder,
+                num_maps,
+                ood_map_folder=ood_map_folder,
+                num_ood_maps=num_ood_maps,
+            )
+            mean_r, ci_r = id_res
+            mean_o, ci_o = ood_res
+            avg_rewards.append(mean_r)
+            ci_vals.append(ci_r)
+            avg_rewards_ood.append(mean_o)
+            ci_vals_ood.append(ci_o)
+        else:
+            mean_r, ci_r = evaluate_on_benchmarks(
+                env, policy, map_folder, num_maps)
+            avg_rewards.append(mean_r)
+            ci_vals.append(ci_r)
 
     x = np.arange(len(model_names))
     plt.figure(figsize=(8, 5))
-    plt.bar(
-        x,
-        avg_rewards,
-        yerr=ci_vals,
-        capsize=5,
-        color=[
-            "gray",
-            "skyblue",
-            "green"])
+    if ood_map_folder and num_ood_maps > 0:
+        width = 0.35
+        plt.bar(
+            x - width / 2,
+            avg_rewards,
+            width,
+            yerr=ci_vals,
+            capsize=5,
+            label="ID",
+        )
+        plt.bar(
+            x + width / 2,
+            avg_rewards_ood,
+            width,
+            yerr=ci_vals_ood,
+            capsize=5,
+            label="OOD",
+            color="orange",
+        )
+        plt.legend()
+    else:
+        plt.bar(
+            x,
+            avg_rewards,
+            yerr=ci_vals,
+            capsize=5,
+            color=["gray", "skyblue", "green"],
+        )
     plt.xticks(x, model_names)
     plt.ylabel("Average Reward")
     plt.title("Model Performance on Benchmark Maps")
