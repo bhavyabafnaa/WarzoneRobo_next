@@ -31,7 +31,7 @@ from src.icm import ICMModule
 from src.rnd import RNDModule
 from src.pseudocount import PseudoCountExploration
 from src.planner import SymbolicPlanner
-from src.ppo import PPOPolicy, train_agent
+from src.ppo import PPOPolicy, train_agent, get_beta_schedule
 from src.utils import save_model, count_intrinsic_spikes
 
 
@@ -536,6 +536,9 @@ def run(args):
                 risk_weight=args.risk_weight,
                 revisit_penalty=args.revisit_penalty,
             )
+            beta_schedule = get_beta_schedule(
+                args.num_episodes, args.initial_beta, args.final_beta
+            )
 
             # PPO only
             print("Training PPO Only")
@@ -679,8 +682,7 @@ def run(args):
                     use_icm=True,
                     use_planner=False,
                     num_episodes=args.num_episodes,
-                    beta=args.initial_beta,
-                    final_beta=args.final_beta,
+                    beta_schedule=beta_schedule,
                     planner_weights=planner_weights,
                     seed=run_seed,
                     add_noise=args.add_noise,
@@ -790,8 +792,7 @@ def run(args):
                 use_planner=False,
                 pseudo=pseudo,
                 num_episodes=args.num_episodes,
-                beta=args.initial_beta,
-                final_beta=args.final_beta,
+                beta_schedule=beta_schedule,
                 planner_weights=planner_weights,
                 seed=run_seed,
                 add_noise=args.add_noise,
@@ -896,8 +897,7 @@ def run(args):
                     use_icm=True,
                     use_planner=True,
                     num_episodes=args.num_episodes,
-                    beta=args.initial_beta,
-                    final_beta=args.final_beta,
+                    beta_schedule=beta_schedule,
                     planner_weights=planner_weights,
                     seed=run_seed,
                     add_noise=args.add_noise,
@@ -1024,8 +1024,7 @@ def run(args):
                 use_icm="count",
                 use_planner=False,
                 num_episodes=args.num_episodes,
-                beta=args.initial_beta,
-                final_beta=args.final_beta,
+                beta_schedule=beta_schedule,
                 planner_weights=planner_weights,
                 seed=run_seed,
                 add_noise=args.add_noise,
@@ -1137,8 +1136,7 @@ def run(args):
                     use_planner=False,
                     rnd=rnd,
                     num_episodes=args.num_episodes,
-                    beta=args.initial_beta,
-                    final_beta=args.final_beta,
+                    beta_schedule=beta_schedule,
                     planner_weights=planner_weights,
                     seed=run_seed,
                     add_noise=args.add_noise,

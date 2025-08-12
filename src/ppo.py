@@ -4,7 +4,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 import numpy as np
-from typing import List, Optional
+from typing import List, Optional, Sequence
 
 from .planner import SymbolicPlanner
 from .icm import ICMModule
@@ -50,6 +50,27 @@ def compute_gae(
     return advantages
 
 
+def get_beta_schedule(num_episodes: int, initial: float, final: Optional[float] = None) -> List[float]:
+    """Return a list of ``beta`` values for each episode.
+
+    When ``final`` is provided the schedule linearly decays from ``initial``
+    to ``final`` over the first two thirds of ``num_episodes`` and remains at
+    ``final`` thereafter. If ``final`` is ``None`` or equal to ``initial`` the
+    schedule is constant.
+    """
+
+    if final is None or final == initial:
+        return [float(initial)] * num_episodes
+
+    decay_end = max(1, int(num_episodes * 2 / 3))
+    schedule: List[float] = []
+    for episode in range(num_episodes):
+        progress = min(episode, decay_end) / decay_end
+        beta_val = max(final, initial - (initial - final) * progress)
+        schedule.append(float(beta_val))
+    return schedule
+
+
 def train_agent(
     env,
     policy: PPOPolicy,
@@ -62,6 +83,7 @@ def train_agent(
     num_episodes: int = 500,
     beta: float = 0.1,
     final_beta: Optional[float] = None,
+    beta_schedule: Optional[Sequence[float]] = None,
     gamma: float = 0.99,
     planner_weights: Optional[dict] = None,
     rnd: Optional[RNDModule] = None,
@@ -131,6 +153,7 @@ def train_agent(
     episode_times = []
     steps_per_sec_log = []
     wall_clock_times = []
+    beta_log: List[float] = []
 
     initial_bonus = max(0.1, float(initial_bonus))
 
@@ -141,6 +164,17 @@ def train_agent(
     world_model = WorldModel(state_dim, action_dim)
     wm_optimizer = torch.optim.Adam(world_model.parameters(), lr=world_model_lr)
     replay_buffer = ReplayBuffer()
+
+    if beta_schedule is None:
+        beta_schedule = get_beta_schedule(num_episodes, beta, final_beta)
+    else:
+        beta_schedule = list(beta_schedule)
+    if logger is not None:
+        if hasattr(logger, "log"):
+            logger.log({"beta_schedule": beta_schedule})
+        elif hasattr(logger, "add_scalar"):
+            for i, b in enumerate(beta_schedule):
+                logger.add_scalar("beta_schedule", b, i)
 
     benchmark_map = "maps/map_00.npz"
     os.makedirs(os.path.dirname(benchmark_map), exist_ok=True)
@@ -196,12 +230,16 @@ def train_agent(
         min_dist = float('inf')
         adherence_count = 0
 
-        if final_beta is not None:
+        # Determine intrinsic reward weight for this episode
+        if beta_schedule is not None:
+            beta_val = float(beta_schedule[episode])
+        elif final_beta is not None:
             decay_end = max(1, int(num_episodes * 2 / 3))
             progress = min(episode, decay_end) / decay_end
             beta_val = max(final_beta, beta - (beta - final_beta) * progress)
         else:
             beta_val = beta
+        beta_log.append(beta_val)
 
         while not done:
             prev_obs = obs.copy()
@@ -539,4 +577,5 @@ def train_agent(
         episode_times,
         steps_per_sec_log,
         wall_clock_times,
+        beta_log,
     )
