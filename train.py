@@ -319,36 +319,48 @@ def main():
                 "success": [],
                 "planner_pct": [],
                 "spikes": [],
+                "episode_costs": [],
+                "violation_flags": [],
             },
             "PPO + ICM": {
                 "rewards": [],
                 "success": [],
                 "planner_pct": [],
                 "spikes": [],
+                "episode_costs": [],
+                "violation_flags": [],
             },
             "PPO + ICM + Planner": {
                 "rewards": [],
                 "success": [],
                 "planner_pct": [],
                 "spikes": [],
+                "episode_costs": [],
+                "violation_flags": [],
             },
             "PPO + count": {
                 "rewards": [],
                 "success": [],
                 "planner_pct": [],
                 "spikes": [],
+                "episode_costs": [],
+                "violation_flags": [],
             },
             "PPO + RND": {
                 "rewards": [],
                 "success": [],
                 "planner_pct": [],
                 "spikes": [],
+                "episode_costs": [],
+                "violation_flags": [],
             },
             "PPO + PC": {
                 "rewards": [],
                 "success": [],
                 "planner_pct": [],
                 "spikes": [],
+                "episode_costs": [],
+                "violation_flags": [],
             },
         }
         bench = {
@@ -361,16 +373,48 @@ def main():
         }
 
         curve_logs = {
-            "PPO Only": {"rewards": [], "intrinsic": [], "success": []},
-            "PPO + ICM": {"rewards": [], "intrinsic": [], "success": []},
+            "PPO Only": {
+                "rewards": [],
+                "intrinsic": [],
+                "success": [],
+                "episode_costs": [],
+                "violation_flags": [],
+            },
+            "PPO + ICM": {
+                "rewards": [],
+                "intrinsic": [],
+                "success": [],
+                "episode_costs": [],
+                "violation_flags": [],
+            },
             "PPO + ICM + Planner": {
                 "rewards": [],
                 "intrinsic": [],
                 "success": [],
+                "episode_costs": [],
+                "violation_flags": [],
             },
-            "PPO + count": {"rewards": [], "intrinsic": [], "success": []},
-            "PPO + RND": {"rewards": [], "intrinsic": [], "success": []},
-            "PPO + PC": {"rewards": [], "intrinsic": [], "success": []},
+            "PPO + count": {
+                "rewards": [],
+                "intrinsic": [],
+                "success": [],
+                "episode_costs": [],
+                "violation_flags": [],
+            },
+            "PPO + RND": {
+                "rewards": [],
+                "intrinsic": [],
+                "success": [],
+                "episode_costs": [],
+                "violation_flags": [],
+            },
+            "PPO + PC": {
+                "rewards": [],
+                "intrinsic": [],
+                "success": [],
+                "episode_costs": [],
+                "violation_flags": [],
+            },
         }
 
         for run_seed in seeds:
@@ -402,6 +446,8 @@ def main():
                 success_ppo_only,
                 planner_rate_ppo_only,
                 mask_counts_ppo_only,
+                episode_costs_ppo_only,
+                violation_flags_ppo_only,
             ) = train_agent(
                 env,
                 ppo_policy,
@@ -441,6 +487,10 @@ def main():
                 float(np.mean(planner_rate_ppo_only)))
             metrics["PPO Only"]["spikes"].append(
                 count_intrinsic_spikes(intrinsic_ppo_only))
+            metrics["PPO Only"]["episode_costs"].append(
+                float(np.mean(episode_costs_ppo_only)))
+            metrics["PPO Only"]["violation_flags"].append(
+                float(np.mean(violation_flags_ppo_only)))
             save_model(
                 ppo_policy,
                 os.path.join(
@@ -448,6 +498,10 @@ def main():
                     f"ppo_only_{run_seed}.pt"))
             curve_logs["PPO Only"]["rewards"].append(rewards_ppo_only)
             curve_logs["PPO Only"]["success"].append(success_ppo_only)
+            curve_logs["PPO Only"]["episode_costs"].append(
+                episode_costs_ppo_only)
+            curve_logs["PPO Only"]["violation_flags"].append(
+                violation_flags_ppo_only)
             render_episode_video(
                 env,
                 ppo_policy,
@@ -475,6 +529,8 @@ def main():
                     success_icm,
                     planner_rate_icm,
                     mask_counts_icm,
+                    episode_costs_icm,
+                    violation_flags_icm,
                 ) = train_agent(
                     env,
                     ppo_icm_policy,
@@ -515,6 +571,10 @@ def main():
                     float(np.mean(planner_rate_icm)))
                 metrics["PPO + ICM"]["spikes"].append(
                     count_intrinsic_spikes(intrinsic_icm))
+                metrics["PPO + ICM"]["episode_costs"].append(
+                    float(np.mean(episode_costs_icm)))
+                metrics["PPO + ICM"]["violation_flags"].append(
+                    float(np.mean(violation_flags_icm)))
                 save_model(
                     ppo_icm_policy,
                     os.path.join(
@@ -524,6 +584,10 @@ def main():
                 curve_logs["PPO + ICM"]["rewards"].append(rewards_ppo_icm)
                 curve_logs["PPO + ICM"]["intrinsic"].append(intrinsic_icm)
                 curve_logs["PPO + ICM"]["success"].append(success_icm)
+                curve_logs["PPO + ICM"]["episode_costs"].append(
+                    episode_costs_icm)
+                curve_logs["PPO + ICM"]["violation_flags"].append(
+                    violation_flags_icm)
                 render_episode_video(
                     env,
                     ppo_icm_policy,
@@ -550,6 +614,8 @@ def main():
                 success_pc,
                 planner_rate_pc,
                 mask_counts_pc,
+                episode_costs_pc,
+                violation_flags_pc,
             ) = train_agent(
                 env,
                 ppo_pc_policy,
@@ -588,6 +654,10 @@ def main():
                 float(np.mean(planner_rate_pc)))
             metrics["PPO + PC"]["spikes"].append(
                 count_intrinsic_spikes(intrinsic_pc))
+            metrics["PPO + PC"]["episode_costs"].append(
+                float(np.mean(episode_costs_pc)))
+            metrics["PPO + PC"]["violation_flags"].append(
+                float(np.mean(violation_flags_pc)))
             save_model(
                 ppo_pc_policy,
                 os.path.join(
@@ -595,6 +665,10 @@ def main():
                     f"ppo_pc_{run_seed}.pt"))
             curve_logs["PPO + PC"]["rewards"].append(rewards_pc)
             curve_logs["PPO + PC"]["success"].append(success_pc)
+            curve_logs["PPO + PC"]["episode_costs"].append(
+                episode_costs_pc)
+            curve_logs["PPO + PC"]["violation_flags"].append(
+                violation_flags_pc)
             render_episode_video(
                 env,
                 ppo_pc_policy,
@@ -622,6 +696,8 @@ def main():
                     success_plan,
                     planner_rate_plan,
                     mask_counts_icm_plan,
+                    episode_costs_icm_plan,
+                    violation_flags_icm_plan,
                 ) = train_agent(
                     env,
                     ppo_icm_planner_policy,
@@ -662,6 +738,10 @@ def main():
                     float(np.mean(planner_rate_plan)))
                 metrics["PPO + ICM + Planner"]["spikes"].append(
                     count_intrinsic_spikes(intrinsic_plan))
+                metrics["PPO + ICM + Planner"]["episode_costs"].append(
+                    float(np.mean(episode_costs_icm_plan)))
+                metrics["PPO + ICM + Planner"]["violation_flags"].append(
+                    float(np.mean(violation_flags_icm_plan)))
                 save_model(
                     ppo_icm_planner_policy,
                     os.path.join(
@@ -675,6 +755,10 @@ def main():
                     intrinsic_plan)
                 curve_logs["PPO + ICM + Planner"]["success"].append(
                     success_plan)
+                curve_logs["PPO + ICM + Planner"]["episode_costs"].append(
+                    episode_costs_icm_plan)
+                curve_logs["PPO + ICM + Planner"]["violation_flags"].append(
+                    violation_flags_icm_plan)
                 render_episode_video(
                     env,
                     ppo_icm_planner_policy,
@@ -715,6 +799,8 @@ def main():
                 success_count,
                 planner_rate_count,
                 mask_counts_count,
+                episode_costs_count,
+                violation_flags_count,
             ) = train_agent(
                 env,
                 ppo_count_policy,
@@ -756,6 +842,10 @@ def main():
                 float(np.mean(planner_rate_count)))
             metrics["PPO + count"]["spikes"].append(
                 count_intrinsic_spikes(intrinsic_count))
+            metrics["PPO + count"]["episode_costs"].append(
+                float(np.mean(episode_costs_count)))
+            metrics["PPO + count"]["violation_flags"].append(
+                float(np.mean(violation_flags_count)))
             save_model(
                 ppo_count_policy,
                 os.path.join(
@@ -763,6 +853,10 @@ def main():
                     f"ppo_count_{run_seed}.pt"))
             curve_logs["PPO + count"]["rewards"].append(rewards_ppo_count)
             curve_logs["PPO + count"]["success"].append(success_count)
+            curve_logs["PPO + count"]["episode_costs"].append(
+                episode_costs_count)
+            curve_logs["PPO + count"]["violation_flags"].append(
+                violation_flags_count)
             render_episode_video(
                 env,
                 ppo_count_policy,
@@ -792,6 +886,8 @@ def main():
                     success_rnd,
                     planner_rate_rnd,
                     mask_counts_rnd,
+                    episode_costs_rnd,
+                    violation_flags_rnd,
                 ) = train_agent(
                     env,
                     ppo_rnd_policy,
@@ -833,6 +929,10 @@ def main():
                     float(np.mean(planner_rate_rnd)))
                 metrics["PPO + RND"]["spikes"].append(
                     count_intrinsic_spikes(intrinsic_rnd))
+                metrics["PPO + RND"]["episode_costs"].append(
+                    float(np.mean(episode_costs_rnd)))
+                metrics["PPO + RND"]["violation_flags"].append(
+                    float(np.mean(violation_flags_rnd)))
                 save_model(
                     ppo_rnd_policy,
                     os.path.join("checkpoints", f"ppo_rnd_{run_seed}.pt"),
@@ -840,6 +940,10 @@ def main():
                 )
                 curve_logs["PPO + RND"]["rewards"].append(rewards_ppo_rnd)
                 curve_logs["PPO + RND"]["success"].append(success_rnd)
+                curve_logs["PPO + RND"]["episode_costs"].append(
+                    episode_costs_rnd)
+                curve_logs["PPO + RND"]["violation_flags"].append(
+                    violation_flags_rnd)
                 render_episode_video(
                     env,
                     ppo_rnd_policy,
@@ -932,6 +1036,21 @@ def main():
                     "Intrinsic Spikes": (
                         float(np.mean(data["spikes"]))
                         if data["spikes"]
+                        else 0.0
+                    ),
+                    "Train Cost Mean": (
+                        float(np.mean(data["episode_costs"]))
+                        if data["episode_costs"]
+                        else 0.0
+                    ),
+                    "Train Cost Std": (
+                        float(np.std(data["episode_costs"]))
+                        if data["episode_costs"]
+                        else 0.0
+                    ),
+                    "Pr[Jc > d]": (
+                        float(np.mean(data["violation_flags"]))
+                        if data["violation_flags"]
                         else 0.0
                     ),
                     "Reward p-value": p_reward,

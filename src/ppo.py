@@ -119,6 +119,8 @@ def train_agent(
     success_flags = []
     planner_usage_rate = []
     mask_counts = []
+    episode_costs = []
+    violation_flags = []
 
     initial_bonus = max(0.1, float(initial_bonus))
 
@@ -387,6 +389,9 @@ def train_agent(
         optimizer_policy.step()
 
         Jc = sum(cost_buf)
+        episode_costs.append(Jc)
+        violation_flag = float(Jc > cost_limit)
+        violation_flags.append(violation_flag)
         lambda_val = max(0.0, lambda_val + eta_lambda * (Jc - cost_limit))
 
         if episode % 50 == 0:
@@ -415,6 +420,8 @@ def train_agent(
                 logger.add_scalar("intrinsic_reward", intrinsic_log, episode)
                 logger.add_scalar("success_rate", success_rate, episode)
                 logger.add_scalar("lambda_val", lambda_val, episode)
+                logger.add_scalar("episode_cost", Jc, episode)
+                logger.add_scalar("constraint_violation", violation_flag, episode)
             elif hasattr(logger, "log"):
                 logger.log(
                     {
@@ -422,6 +429,8 @@ def train_agent(
                         "intrinsic_reward": intrinsic_log,
                         "success_rate": success_rate,
                         "lambda_val": lambda_val,
+                        "episode_cost": Jc,
+                        "constraint_violation": violation_flag,
                         "episode": episode,
                     }
                 )
@@ -447,4 +456,6 @@ def train_agent(
         success_flags,
         planner_usage_rate,
         mask_counts,
+        episode_costs,
+        violation_flags,
     )
