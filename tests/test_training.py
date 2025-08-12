@@ -1,6 +1,7 @@
 import os
 from torch import optim
 
+import pytest
 from src.env import GridWorldICM
 from src.icm import ICMModule
 from src.planner import SymbolicPlanner
@@ -9,7 +10,8 @@ import yaml
 import numpy as np
 
 
-def test_short_training_loop(tmp_path):
+@pytest.mark.parametrize("budget", [0.05, 0.10])
+def test_short_training_loop(tmp_path, budget):
     env = GridWorldICM(grid_size=4, max_steps=10)
     os.makedirs("maps", exist_ok=True)
     env.save_map("maps/map_00.npz")
@@ -34,7 +36,7 @@ def test_short_training_loop(tmp_path):
             use_planner=False,
             num_episodes=1,
             eta_lambda=0.05,
-            cost_limit=0.5,
+            cost_limit=budget,
             c1=1.0,
             c2=0.5,
             c3=0.01,
@@ -44,7 +46,8 @@ def test_short_training_loop(tmp_path):
     assert len(runs) == 10
 
 
-def test_training_one_episode_metrics(tmp_path):
+@pytest.mark.parametrize("budget", [0.05, 0.10])
+def test_training_one_episode_metrics(tmp_path, budget):
     with open("configs/default.yaml", "r") as f:
         cfg = yaml.safe_load(f)
 
@@ -72,7 +75,7 @@ def test_training_one_episode_metrics(tmp_path):
             use_planner=False,
             num_episodes=1,
             eta_lambda=cfg.get("eta_lambda", 0.01),
-            cost_limit=cfg.get("cost_limit", 1.0),
+            cost_limit=budget,
             c1=cfg.get("c1", 1.0),
             c2=cfg.get("c2", 0.5),
             c3=cfg.get("c3", 0.01),
@@ -139,7 +142,8 @@ def test_training_one_episode_metrics(tmp_path):
     assert isinstance(first_violation_episode, int)
 
 
-def test_success_flag_survival(tmp_path):
+@pytest.mark.parametrize("budget", [0.05, 0.10])
+def test_success_flag_survival(tmp_path, budget):
     env = GridWorldICM(grid_size=2, max_steps=2)
     env.cost_map = np.zeros((2, 2))
     env.risk_map = np.zeros((2, 2))
@@ -169,7 +173,7 @@ def test_success_flag_survival(tmp_path):
             num_episodes=1,
             reset_env=False,
             eta_lambda=0.05,
-            cost_limit=0.5,
+            cost_limit=budget,
             c1=1.0,
             c2=0.5,
             c3=0.01,

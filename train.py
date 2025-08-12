@@ -252,13 +252,18 @@ def parse_args():
     # Final parse with config defaults applied; command line flags take
     # precedence over YAML settings.
     return parser.parse_args()
-
-
-def main():
-    args = parse_args()
-
+def run(args):
+    budget_str = f"budget_{args.cost_limit:.2f}"
+    video_dir = os.path.join("videos", budget_str)
+    result_dir = os.path.join("results", budget_str)
+    figure_dir = os.path.join("figures", budget_str)
+    checkpoint_dir = os.path.join("checkpoints", budget_str)
+    plot_dir = None
     if args.plot_dir:
-        os.makedirs(args.plot_dir, exist_ok=True)
+        plot_dir = os.path.join(args.plot_dir, budget_str)
+        os.makedirs(plot_dir, exist_ok=True)
+    for d in [video_dir, result_dir, figure_dir, checkpoint_dir]:
+        os.makedirs(d, exist_ok=True)
 
     # Set random seeds for reproducibility
     np.random.seed(args.seed)
@@ -619,7 +624,7 @@ def main():
             save_model(
                 ppo_policy,
                 os.path.join(
-                    "checkpoints",
+                    checkpoint_dir,
                     f"ppo_only_{run_seed}.pt"))
             curve_logs["PPO Only"]["rewards"].append(rewards_ppo_only)
             curve_logs["PPO Only"]["success"].append(success_ppo_only)
@@ -631,7 +636,7 @@ def main():
                 env,
                 ppo_policy,
                 os.path.join(
-                    "videos", f"{safe_setting}_ppo_only_{run_seed}.gif"),
+                    video_dir, f"{safe_setting}_ppo_only_{run_seed}.gif"),
                 H=args.H,
             )
             mean_b, _ = evaluate_on_benchmarks(
@@ -728,7 +733,7 @@ def main():
                 save_model(
                     ppo_icm_policy,
                     os.path.join(
-                        "checkpoints",
+                        checkpoint_dir,
                         f"ppo_icm_{run_seed}.pt"),
                     icm=icm)
                 curve_logs["PPO + ICM"]["rewards"].append(rewards_ppo_icm)
@@ -742,7 +747,7 @@ def main():
                     env,
                     ppo_icm_policy,
                     os.path.join(
-                        "videos", f"{safe_setting}_ppo_icm_{run_seed}.gif"),
+                        video_dir, f"{safe_setting}_ppo_icm_{run_seed}.gif"),
                     H=args.H,
                 )
                 mean_b, _ = evaluate_on_benchmarks(
@@ -836,7 +841,7 @@ def main():
             save_model(
                 ppo_pc_policy,
                 os.path.join(
-                    "checkpoints",
+                    checkpoint_dir,
                     f"ppo_pc_{run_seed}.pt"))
             curve_logs["PPO + PC"]["rewards"].append(rewards_pc)
             curve_logs["PPO + PC"]["success"].append(success_pc)
@@ -848,7 +853,7 @@ def main():
                 env,
                 ppo_pc_policy,
                 os.path.join(
-                    "videos", f"{safe_setting}_ppo_pc_{run_seed}.gif"),
+                    video_dir, f"{safe_setting}_ppo_pc_{run_seed}.gif"),
                 H=args.H,
             )
             mean_b, _ = evaluate_on_benchmarks(
@@ -945,7 +950,7 @@ def main():
                 save_model(
                     ppo_icm_planner_policy,
                     os.path.join(
-                        "checkpoints",
+                        checkpoint_dir,
                         f"ppo_icm_planner_{run_seed}.pt"),
                     icm=icm,
                 )
@@ -963,7 +968,7 @@ def main():
                     env,
                     ppo_icm_planner_policy,
                     os.path.join(
-                        "videos", f"{safe_setting}_ppo_icm_planner_{run_seed}.gif"
+                        video_dir, f"{safe_setting}_ppo_icm_planner_{run_seed}.gif"
                     ),
                     H=args.H,
                 )
@@ -972,13 +977,13 @@ def main():
                 bench["PPO + ICM + Planner"].append(mean_b)
                 if paths_plan:
                     heat_path = None
-                    if args.plot_dir:
+                    if plot_dir:
                         safe_setting = setting["name"].replace(" ", "_")
                         heat_filename = (
                             f"heatmap_{safe_setting}_{run_seed}.pdf"
                         )
                         heat_path = os.path.join(
-                            args.plot_dir,
+                            plot_dir,
                             heat_filename,
                         )
                     plot_heatmap_with_path(
@@ -1074,7 +1079,7 @@ def main():
             save_model(
                 ppo_count_policy,
                 os.path.join(
-                    "checkpoints",
+                    checkpoint_dir,
                     f"ppo_count_{run_seed}.pt"))
             curve_logs["PPO + count"]["rewards"].append(rewards_ppo_count)
             curve_logs["PPO + count"]["success"].append(success_count)
@@ -1086,7 +1091,7 @@ def main():
                 env,
                 ppo_count_policy,
                 os.path.join(
-                    "videos", f"{safe_setting}_ppo_count_{run_seed}.gif"),
+                    video_dir, f"{safe_setting}_ppo_count_{run_seed}.gif"),
                 H=args.H,
             )
             mean_b, _ = evaluate_on_benchmarks(
@@ -1185,7 +1190,7 @@ def main():
                     float(wall_clock_times_rnd[-1]))
                 save_model(
                     ppo_rnd_policy,
-                    os.path.join("checkpoints", f"ppo_rnd_{run_seed}.pt"),
+                    os.path.join(checkpoint_dir, f"ppo_rnd_{run_seed}.pt"),
                     rnd=rnd,
                 )
                 curve_logs["PPO + RND"]["rewards"].append(rewards_ppo_rnd)
@@ -1198,7 +1203,7 @@ def main():
                     env,
                     ppo_rnd_policy,
                     os.path.join(
-                        "videos", f"{safe_setting}_ppo_rnd_{run_seed}.gif"),
+                        video_dir, f"{safe_setting}_ppo_rnd_{run_seed}.gif"),
                     H=args.H,
                 )
                 mean_b, _ = evaluate_on_benchmarks(
@@ -1209,11 +1214,11 @@ def main():
         for name, logs_dict in curve_logs.items():
             if logs_dict["rewards"]:
                 out_file = None
-                if args.plot_dir:
+                if plot_dir:
                     safe_setting = setting["name"].replace(" ", "_")
                     safe_name = name.replace(" ", "_").replace("+", "")
                     out_file = os.path.join(
-                        args.plot_dir, f"{safe_setting}_{safe_name}.pdf"
+                        plot_dir, f"{safe_setting}_{safe_name}.pdf"
                     )
                 metrics_to_plot = {
                     "Reward": logs_dict["rewards"],
@@ -1294,6 +1299,7 @@ def main():
 
             results.append(
                 {
+                    "Budget": args.cost_limit,
                     "Setting": setting["name"],
                     "Model": name,
                     "Train Reward": reward,
@@ -1320,6 +1326,7 @@ def main():
             if vals:
                 bench_results.append(
                     {
+                        "Budget": args.cost_limit,
                         "Setting": setting["name"],
                         "Model": name,
                         "Benchmark Reward": format_mean_ci(vals),
@@ -1330,14 +1337,13 @@ def main():
         all_bench.extend(bench_results)
 
     df_train = pd.DataFrame(all_results)
-    os.makedirs("results", exist_ok=True)
     generate_results_table(
-        df_train, os.path.join("results", "training_results.html")
+        df_train, os.path.join(result_dir, "training_results.html")
     )
     if all_bench:
         df_bench = pd.DataFrame(all_bench)
         generate_results_table(
-            df_bench, os.path.join("results", "benchmark_results.html")
+            df_bench, os.path.join(result_dir, "benchmark_results.html")
         )
 
     if args.log_backend == "tensorboard" and logger is not None:
@@ -1347,4 +1353,8 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    base_args = parse_args()
+    for budget in [0.05, 0.10]:
+        args = argparse.Namespace(**vars(base_args))
+        args.cost_limit = budget
+        run(args)
