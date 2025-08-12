@@ -69,6 +69,10 @@ def train_agent(
     logger=None,
     initial_bonus: float = 0.5,
     reset_env: bool = True,
+    lambda_cost: float = 1.0,
+    c1: float = 0.5,
+    c2: float = 0.5,
+    c3: float = 0.01,
 ):
     """Train a PPO agent with optional curiosity and planning.
 
@@ -118,6 +122,7 @@ def train_agent(
         val_buf = []
         cost_val_buf = []
         reward_buf = []
+        cost_buf = []
         agent_path = []
         planner_decisions = 0
         if planner_weights is not None:
@@ -237,6 +242,7 @@ def train_agent(
             val_buf.append(value.item())
             cost_val_buf.append(value_cost.item())
             reward_buf.append(total_reward)
+            cost_buf.append(cost_t)
 
         reward_range = max(reward_buf) - min(reward_buf) + 1e-8
         reward_buf = [
@@ -244,10 +250,14 @@ def train_agent(
             for r in reward_buf
         ]
         advantages = compute_gae(reward_buf, val_buf, gamma=gamma, lam=0.95)
+        cost_advantages = compute_gae(cost_buf, cost_val_buf, gamma=gamma, lam=0.95)
 
         adv_tensor = torch.tensor(advantages, dtype=torch.float32)
         adv_tensor = (adv_tensor - adv_tensor.mean()) / \
             (adv_tensor.std() + 1e-8)
+        cost_adv_tensor = torch.tensor(cost_advantages, dtype=torch.float32)
+        cost_adv_tensor = (cost_adv_tensor - cost_adv_tensor.mean()) / \
+            (cost_adv_tensor.std() + 1e-8)
 
         obs_tensor = torch.tensor(np.array(obs_buf), dtype=torch.float32)
         action_tensor = torch.tensor(action_buf)
@@ -258,16 +268,24 @@ def train_agent(
         entropy = dist.entropy()
 
         ratio = torch.exp(new_logprob - logprob_tensor)
-        surr1 = ratio * adv_tensor
-        surr2 = torch.clamp(ratio, 1 - 0.2, 1 + 0.2) * adv_tensor
-        policy_loss = -torch.min(surr1, surr2).mean()
+        clipped_ratio = torch.clamp(ratio, 1 - 0.2, 1 + 0.2)
+        l_reward = torch.min(ratio * adv_tensor, clipped_ratio * adv_tensor).mean()
+        l_cost = cost_adv_tensor.mean()
 
-        value_loss = F.mse_loss(
+        v_reward_loss = F.mse_loss(
             new_vals.squeeze(), torch.tensor(
                 reward_buf, dtype=torch.float32))
-        entropy_loss = -0.01 * entropy.mean()
+        v_cost_loss = F.mse_loss(
+            new_cost_vals.squeeze(), torch.tensor(
+                cost_buf, dtype=torch.float32))
+        entropy_mean = entropy.mean()
 
-        total_loss = policy_loss + 0.5 * value_loss + entropy_loss
+        total_loss = (
+            -(l_reward - lambda_cost * l_cost)
+            + c1 * v_reward_loss
+            + c2 * v_cost_loss
+            - c3 * entropy_mean
+        )
         optimizer_policy.zero_grad()
         total_loss.backward()
         optimizer_policy.step()
