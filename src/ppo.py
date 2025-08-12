@@ -18,18 +18,19 @@ class PPOPolicy(nn.Module):
         self.fc2 = nn.Linear(256, 128)
         self.actor = nn.Linear(128, action_dim)
         self.critic = nn.Linear(128, 1)
+        self.cost_critic = nn.Linear(128, 1)
 
     def forward(self, x: torch.Tensor):
         x = F.relu(self.fc1(x))
         x = F.relu(self.fc2(x))
-        return self.actor(x), self.critic(x)
+        return self.actor(x), self.critic(x), self.cost_critic(x)
 
     def act(self, x: torch.Tensor):
-        logits, value = self.forward(x)
+        logits, value_reward, value_cost = self.forward(x)
         probs = F.softmax(logits, dim=-1)
         dist = torch.distributions.Categorical(probs)
         action = dist.sample()
-        return action.item(), dist.log_prob(action), value
+        return action.item(), dist.log_prob(action), value_reward, value_cost
 
 
 def compute_gae(
@@ -115,6 +116,7 @@ def train_agent(
         action_buf = []
         logprob_buf = []
         val_buf = []
+        cost_val_buf = []
         reward_buf = []
         agent_path = []
         planner_decisions = 0
@@ -170,9 +172,10 @@ def train_agent(
                 used_planner = True
                 logprob = torch.tensor([0.0])
                 value = torch.tensor(0.0)
+                value_cost = torch.tensor(0.0)
                 planner_decisions += 1
             else:
-                action, logprob, value = policy.act(state_tensor)
+                action, logprob, value, value_cost = policy.act(state_tensor)
                 ppo_decisions += 1
 
             next_obs, ext_reward, cost_t, done, _, info = env.step(
@@ -232,6 +235,7 @@ def train_agent(
             action_buf.append(action)
             logprob_buf.append(logprob)
             val_buf.append(value.item())
+            cost_val_buf.append(value_cost.item())
             reward_buf.append(total_reward)
 
         reward_range = max(reward_buf) - min(reward_buf) + 1e-8
@@ -248,7 +252,7 @@ def train_agent(
         obs_tensor = torch.tensor(np.array(obs_buf), dtype=torch.float32)
         action_tensor = torch.tensor(action_buf)
         logprob_tensor = torch.stack(logprob_buf)
-        logits, new_vals = policy(obs_tensor)
+        logits, new_vals, new_cost_vals = policy(obs_tensor)
         dist = torch.distributions.Categorical(logits=logits)
         new_logprob = dist.log_prob(action_tensor)
         entropy = dist.entropy()

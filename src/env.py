@@ -296,7 +296,7 @@ def visualize_paths_on_benchmark_maps(
         done = False
         while not done:
             state_tensor = torch.tensor(obs, dtype=torch.float32).unsqueeze(0)
-            action, _, _ = policy.act(state_tensor)
+            action, _, _, _ = policy.act(state_tensor)
             obs, reward, cost_t, done, _, _ = env.step(action)
             path.append(tuple(env.agent_pos))
             rewards.append(reward)
@@ -381,7 +381,7 @@ def evaluate_on_benchmarks(
         total_reward = 0.0
         while not done:
             state_tensor = torch.tensor(obs, dtype=torch.float32).unsqueeze(0)
-            action, _, _ = policy.act(state_tensor)
+            action, _, _, _ = policy.act(state_tensor)
             obs, reward, cost_t, done, _, _ = env.step(action)
             total_reward += reward
         rewards.append(total_reward)

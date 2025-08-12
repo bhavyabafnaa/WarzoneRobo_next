@@ -175,7 +175,7 @@ def render_episode_video(
     step = 0
     while not done and step < max_steps:
         state_tensor = torch.tensor(obs, dtype=torch.float32).unsqueeze(0)
-        action, _, _ = policy.act(state_tensor)
+        action, _, _, _ = policy.act(state_tensor)
         obs, _, _, done, _, _ = env.step(action)
         frames.append(env.render())
         step += 1
