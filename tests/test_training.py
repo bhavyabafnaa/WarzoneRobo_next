@@ -213,3 +213,24 @@ def test_beta_schedule_consistency():
     assert beta_log1 == schedule
     assert beta_log2 == schedule
     assert beta_log1 == beta_log2
+
+
+def test_reward_ci_warning():
+    from train import check_reward_difference_ci
+
+    baseline = [0.0, 0.1, 0.2]
+    other = [0.5, 0.4, 0.6]
+    with pytest.warns(RuntimeWarning):
+        check_reward_difference_ci(baseline, other)
+
+
+def test_reward_ci_no_warning():
+    from train import check_reward_difference_ci
+    import warnings
+
+    baseline = [0.0, 0.1, 0.2]
+    other = [3.0, 3.1, 3.2]
+    with warnings.catch_warnings(record=True) as w:
+        warnings.simplefilter("always")
+        check_reward_difference_ci(baseline, other)
+    assert len(w) == 0

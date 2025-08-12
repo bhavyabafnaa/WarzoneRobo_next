@@ -2,6 +2,7 @@ import os
 for d in ["videos", "results", "figures", "checkpoints"]:
     os.makedirs(d, exist_ok=True)
 import argparse
+import warnings
 import yaml
 import torch
 import torch.optim as optim
@@ -52,6 +53,34 @@ def format_mean_ci(values: list[float], scale: float = 1.0) -> str:
     scaled = np.asarray(values, dtype=float) * scale
     mean, ci = mean_ci(scaled)
     return f"{mean:.2f} ± {ci:.2f}"
+
+
+def check_reward_difference_ci(
+    baseline_rewards: list[float],
+    method_rewards: list[float],
+    threshold: float = 0.2,
+) -> tuple[float, float]:
+    """Compare reward difference against combined CI width.
+
+    Emits a warning if the sum of 95% CI half-widths exceeds ``threshold``
+    times the absolute difference in means, suggesting more seeds/maps are
+    needed for confident comparison.
+
+    Returns the observed difference and combined CI width.
+    """
+    base_mean, base_ci = mean_ci(baseline_rewards)
+    meth_mean, meth_ci = mean_ci(method_rewards)
+    diff = abs(meth_mean - base_mean)
+    ci_width = base_ci + meth_ci
+    if diff > 0 and ci_width > threshold * diff:
+        warnings.warn(
+            (
+                f"Reward CI width {ci_width:.3f} exceeds {threshold * 100:.1f}% "
+                f"of difference {diff:.3f}. Consider using more seeds/maps."
+            ),
+            RuntimeWarning,
+        )
+    return diff, ci_width
 
 
 def parse_args():
@@ -1279,7 +1308,11 @@ def run(args):
                     baseline_success,
                     data["success"],
                     alternative="two-sided").pvalue
-            reward = format_mean_ci(data["rewards"])
+            reward_mean, reward_ci = mean_ci(data["rewards"])
+            reward = f"{reward_mean:.2f} ± {reward_ci:.2f}"
+            if name != "PPO Only":
+                check_reward_difference_ci(
+                    metrics["PPO Only"]["rewards"], data["rewards"])
             success = format_mean_ci(data["success"])
             planner = format_mean_ci(data["planner_pct"], scale=100)
             mask_rate = format_mean_ci(data["mask_rate"])
