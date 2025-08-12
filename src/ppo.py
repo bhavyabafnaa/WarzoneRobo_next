@@ -75,6 +75,7 @@ def train_agent(
     c1: float = 1.0,
     c2: float = 0.5,
     c3: float = 0.01,
+    tau: float = 0.6,
 ):
     """Train a PPO agent with optional curiosity and planning.
 
@@ -100,6 +101,7 @@ def train_agent(
     step_counts = []
     success_flags = []
     planner_usage_rate = []
+    mask_counts = []
 
     initial_bonus = max(0.1, float(initial_bonus))
 
@@ -150,6 +152,7 @@ def train_agent(
         visit_count = np.zeros((env.grid_size, env.grid_size))
         planner_bonus = max(0.1, initial_bonus *
                             (1 - (episode / num_episodes)))
+        mask_count = 0
 
         if final_beta is not None:
             decay_end = max(1, int(num_episodes * 2 / 3))
@@ -160,31 +163,33 @@ def train_agent(
 
         while not done:
             state_tensor = torch.tensor(obs, dtype=torch.float32).unsqueeze(0)
-            risk = env.risk_map[env.agent_pos[0]][env.agent_pos[1]]
-            if risk > 0.7:
-                planner.risk_weight = 5.0
-                planner.cost_weight = 1.0
-                use_planner_now = use_planner
-            elif risk > 0.5:
-                planner.risk_weight = 3.0
-                planner.cost_weight = 2.0
-                use_planner_now = use_planner
-            elif risk > 0.2:
-                planner.risk_weight = 1.0
-                planner.cost_weight = 3.0
-                use_planner_now = use_planner
-            else:
-                use_planner_now = False
+            action, logprob, value, value_cost = policy.act(state_tensor)
+
+            x, y = env.agent_pos
+            directions = {0: (-1, 0), 1: (1, 0), 2: (0, -1), 3: (0, 1)}
+            candidate_risks = {}
+            for a, (dx, dy) in directions.items():
+                nx, ny = x, y
+                if a == 0 and x > 0:
+                    nx -= 1
+                elif a == 1 and x < env.grid_size - 1:
+                    nx += 1
+                elif a == 2 and y > 0:
+                    ny -= 1
+                elif a == 3 and y < env.grid_size - 1:
+                    ny += 1
+                candidate_risks[a] = env.risk_map[nx][ny]
+
             used_planner = False
-            if use_planner_now:
+            if use_planner and candidate_risks.get(action, 1.0) >= tau:
                 action = planner.get_safe_subgoal(env.agent_pos)
                 used_planner = True
                 logprob = torch.tensor([0.0])
                 value = torch.tensor(0.0)
                 value_cost = torch.tensor(0.0)
                 planner_decisions += 1
+                mask_count += 1
             else:
-                action, logprob, value, value_cost = policy.act(state_tensor)
                 ppo_decisions += 1
 
             next_obs, ext_reward, cost_t, done, _, info = env.step(
@@ -314,6 +319,7 @@ def train_agent(
         else:
             planner_percent = 0
         planner_usage_rate.append(planner_percent)
+        mask_counts.append(mask_count)
 
         success_rate = np.mean(success_flags)
         if logger is not None:
@@ -339,6 +345,7 @@ def train_agent(
             f"Steps: {step_count} | "
             f"PPO: {ppo_decisions} | "
             f"Planner: {planner_decisions} | "
+            f"Masks: {mask_count} | "
             f"Success: {success_rate * 100:.1f}% | "
             f"Lambda: {lambda_val:.2f}"
         )
@@ -352,4 +359,5 @@ def train_agent(
         step_counts,
         success_flags,
         planner_usage_rate,
+        mask_counts,
     )

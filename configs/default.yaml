@@ -13,3 +13,4 @@ dynamic_risk: true
 dynamic_cost: true
 add_noise: false
 seed: 42  # used for numpy and torch; enables deterministic CUDNN
+tau: 0.6

@@ -80,6 +80,12 @@ def parse_args():
     parser.add_argument("--c2", type=float, default=0.5)
     parser.add_argument("--c3", type=float, default=0.01)
     parser.add_argument(
+        "--tau",
+        type=float,
+        default=0.6,
+        help="Risk threshold for masking unsafe actions",
+    )
+    parser.add_argument(
         "--initial-beta",
         type=float,
         default=0.1,
@@ -359,6 +365,7 @@ def main():
                 _,
                 success_ppo_only,
                 planner_rate_ppo_only,
+                mask_counts_ppo_only,
             ) = train_agent(
                 env,
                 ppo_policy,
@@ -380,6 +387,7 @@ def main():
                 c1=args.c1,
                 c2=args.c2,
                 c3=args.c3,
+                tau=args.tau,
             )
             metrics["PPO Only"]["rewards"].append(
                 float(np.mean(rewards_ppo_only)))
@@ -423,6 +431,7 @@ def main():
                     _,
                     success_icm,
                     planner_rate_icm,
+                    mask_counts_icm,
                 ) = train_agent(
                     env,
                     ppo_icm_policy,
@@ -444,6 +453,7 @@ def main():
                     c1=args.c1,
                     c2=args.c2,
                     c3=args.c3,
+                    tau=args.tau,
                 )
                 metrics["PPO + ICM"]["rewards"].append(
                     float(np.mean(rewards_ppo_icm)))
@@ -489,6 +499,7 @@ def main():
                 _,
                 success_pc,
                 planner_rate_pc,
+                mask_counts_pc,
             ) = train_agent(
                 env,
                 ppo_pc_policy,
@@ -511,6 +522,7 @@ def main():
                 c1=args.c1,
                 c2=args.c2,
                 c3=args.c3,
+                tau=args.tau,
             )
             metrics["PPO + PC"]["rewards"].append(float(np.mean(rewards_pc)))
             metrics["PPO + PC"]["success"].append(
@@ -552,6 +564,7 @@ def main():
                     _,
                     success_plan,
                     planner_rate_plan,
+                    mask_counts_icm_plan,
                 ) = train_agent(
                     env,
                     ppo_icm_planner_policy,
@@ -573,6 +586,7 @@ def main():
                     c1=args.c1,
                     c2=args.c2,
                     c3=args.c3,
+                    tau=args.tau,
                 )
                 metrics["PPO + ICM + Planner"]["rewards"].append(
                     float(np.mean(rewards_ppo_icm_plan)))
@@ -636,6 +650,7 @@ def main():
                 _,
                 success_count,
                 planner_rate_count,
+                mask_counts_count,
             ) = train_agent(
                 env,
                 ppo_count_policy,
@@ -657,6 +672,7 @@ def main():
                 c1=args.c1,
                 c2=args.c2,
                 c3=args.c3,
+                tau=args.tau,
             )
             metrics["PPO + count"]["rewards"].append(
                 float(np.mean(rewards_ppo_count))
@@ -704,6 +720,7 @@ def main():
                     _,
                     success_rnd,
                     planner_rate_rnd,
+                    mask_counts_rnd,
                 ) = train_agent(
                     env,
                     ppo_rnd_policy,
@@ -726,6 +743,7 @@ def main():
                     c1=args.c1,
                     c2=args.c2,
                     c3=args.c3,
+                    tau=args.tau,
                 )
                 metrics["PPO + RND"]["rewards"].append(
                     float(np.mean(rewards_ppo_rnd)))
