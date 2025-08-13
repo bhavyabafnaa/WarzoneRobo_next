@@ -16,6 +16,8 @@ add_noise: false
 seed: 42  # used for numpy and torch; enables deterministic CUDNN
 tau: 0.7
 kappa: 4.0
+initial_beta: 0.1
+final_beta: 0.01
 H: 8
 waypoint_bonus: 0.05
 K: 10

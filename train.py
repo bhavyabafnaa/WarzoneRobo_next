@@ -383,8 +383,8 @@ def parse_args():
     parser.add_argument(
         "--final-beta",
         type=float,
-        default=None,
-        help="Final beta value after decay (defaults to initial value)",
+        default=0.01,
+        help="Final beta value after decay",
     )
     parser.add_argument(
         "--dynamic_risk",
@@ -945,6 +945,7 @@ def run(args):
                     use_planner=False,
                     num_episodes=args.num_episodes,
                     beta_schedule=beta_schedule,
+                    final_beta=args.final_beta,
                     planner_weights=planner_weights,
                     seed=run_seed,
                     add_noise=args.add_noise,
@@ -1171,6 +1172,7 @@ def run(args):
                     use_planner=True,
                     num_episodes=args.num_episodes,
                     beta_schedule=beta_schedule,
+                    final_beta=args.final_beta,
                     planner_weights=planner_weights,
                     seed=run_seed,
                     add_noise=args.add_noise,

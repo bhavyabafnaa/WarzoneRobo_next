@@ -181,7 +181,7 @@ def test_beta_schedule_consistency():
     input_dim = 4 * env.grid_size * env.grid_size + 2
     action_dim = 4
 
-    schedule = get_beta_schedule(3, 0.2, 0.1)
+    schedule = get_beta_schedule(3, 0.1, 0.01)
 
     policy1 = PPOPolicy(input_dim, action_dim)
     icm1 = ICMModule(input_dim, action_dim)
