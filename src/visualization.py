@@ -64,6 +64,40 @@ def plot_training_curves(
     plt.show()
 
 
+def plot_pareto(
+    df: pd.DataFrame, cost_limit: float, output_path: str | None = None
+) -> None:
+    """Scatter mean reward vs. mean cost with 95% confidence intervals.
+
+    ``df`` should contain the columns ``Model``, ``Reward Mean``, ``Reward CI``,
+    ``Cost Mean`` and ``Cost CI``. A vertical dashed line at ``cost_limit`` is
+    drawn to indicate the budget ``d``.
+    """
+
+    sns.set(style="darkgrid")
+    fig, ax = plt.subplots(figsize=(6, 4))
+    for _, row in df.iterrows():
+        ax.errorbar(
+            row["Cost Mean"],
+            row["Reward Mean"],
+            xerr=row.get("Cost CI", 0.0),
+            yerr=row.get("Reward CI", 0.0),
+            fmt="o",
+            label=row.get("Model", ""),
+        )
+    ax.axvline(cost_limit, color="red", linestyle="--", label=f"Budget d={cost_limit:.2f}")
+    ax.set_xlabel("Mean Cost")
+    ax.set_ylabel("Mean Reward")
+    ax.legend()
+    plt.tight_layout()
+    if output_path is not None:
+        os.makedirs(os.path.dirname(output_path) or ".", exist_ok=True)
+        ext = os.path.splitext(output_path)[1].lower()
+        fmt = "svg" if ext == ".svg" else "pdf"
+        plt.savefig(output_path, format=fmt)
+    plt.show()
+
+
 def plot_heatmap_with_path(env, path, output_path: str | None = None):
     """Display cost and risk maps with an overlayed agent path.
 

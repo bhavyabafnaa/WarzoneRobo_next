@@ -27,6 +27,7 @@ from src.env import (
 )
 from src.visualization import (
     plot_training_curves,
+    plot_pareto,
     plot_heatmap_with_path,
     generate_results_table,
     render_episode_video,
@@ -1613,6 +1614,27 @@ def run(args):
             _, padj, _, _ = multipletests(success_ps, method="holm")
             for i, adj in zip(success_idx, padj):
                 results[i]["Success p-adj"] = adj
+        pareto_rows = []
+        for name, data in metrics.items():
+            if data["rewards"] and data["episode_costs"]:
+                r_mean, r_ci = mean_ci(flatten_metric(data["rewards"]))
+                c_mean, c_ci = mean_ci(data["episode_costs"])
+                pareto_rows.append(
+                    {
+                        "Model": name,
+                        "Reward Mean": r_mean,
+                        "Reward CI": r_ci,
+                        "Cost Mean": c_mean,
+                        "Cost CI": c_ci,
+                    }
+                )
+        if pareto_rows:
+            pareto_df = pd.DataFrame(pareto_rows)
+            out_file = None
+            if plot_dir:
+                safe_setting = setting["name"].replace(" ", "_")
+                out_file = os.path.join(plot_dir, f"{safe_setting}_pareto.pdf")
+            plot_pareto(pareto_df, args.cost_limit, out_file)
 
         all_results.extend(results)
         all_bench.extend(bench_results)
