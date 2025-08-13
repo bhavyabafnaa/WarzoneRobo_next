@@ -8,7 +8,11 @@ eta_lambda: 0.05
 cost_limit: 0.05
 c1: 1.0
 c2: 0.5
-c3: 0.01
+entropy_coef: 0.01
+learning_rate: 0.0003
+clip_epsilon: 0.2
+gamma: 0.99
+gae_lambda: 0.95
 survival_reward: 0.05
 dynamic_risk: true
 dynamic_cost: true

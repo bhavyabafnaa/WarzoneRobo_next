@@ -98,7 +98,7 @@ def train_agent(
     cost_limit: float = 1.0,
     c1: float = 1.0,
     c2: float = 0.5,
-    c3: float = 0.01,
+    entropy_coef: float = 0.01,
     tau: float = 0.7,
     use_risk_penalty: bool = True,
     kappa: float = 4.0,
@@ -107,6 +107,8 @@ def train_agent(
     imagination_k: int = 10,
     world_model_lr: float = 1e-3,
     allow_early_stop: bool = False,
+    clip_epsilon: float = 0.2,
+    gae_lambda: float = 0.95,
 ):
     """Train a PPO agent with optional curiosity and planning.
 
@@ -415,8 +417,8 @@ def train_agent(
             (r - min(reward_buf)) / reward_range
             for r in reward_buf
         ]
-        advantages = compute_gae(reward_buf, val_buf, gamma=gamma, lam=0.95)
-        cost_advantages = compute_gae(cost_buf, cost_val_buf, gamma=gamma, lam=0.95)
+        advantages = compute_gae(reward_buf, val_buf, gamma=gamma, lam=gae_lambda)
+        cost_advantages = compute_gae(cost_buf, cost_val_buf, gamma=gamma, lam=gae_lambda)
 
         adv_tensor = torch.tensor(advantages, dtype=torch.float32)
         adv_std = adv_tensor.std(unbiased=False)
@@ -434,7 +436,7 @@ def train_agent(
         entropy = dist.entropy()
 
         ratio = torch.exp(new_logprob - logprob_tensor)
-        clipped_ratio = torch.clamp(ratio, 1 - 0.2, 1 + 0.2)
+        clipped_ratio = torch.clamp(ratio, 1 - clip_epsilon, 1 + clip_epsilon)
         l_reward = torch.min(ratio * adv_tensor, clipped_ratio * adv_tensor).mean()
         l_cost = cost_adv_tensor.mean()
 
@@ -450,7 +452,7 @@ def train_agent(
             -(l_reward - lambda_val * l_cost)
             + c1 * v_reward_loss
             + c2 * v_cost_loss
-            - c3 * entropy_mean
+            - entropy_coef * entropy_mean
         )
         optimizer_policy.zero_grad()
         total_loss.backward()
