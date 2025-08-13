@@ -49,6 +49,21 @@ def mean_ci(values: list[float]) -> tuple[float, float]:
     return mean, ci
 
 
+def bootstrap_ci(values: list[float], n_resamples: int = 10_000) -> tuple[float, float]:
+    """Return the mean and 95% bootstrap confidence interval for ``values``."""
+    if len(values) == 0:
+        return 0.0, 0.0
+    arr = np.asarray(values, dtype=float)
+    mean = float(arr.mean())
+    if len(arr) < 2:
+        return mean, 0.0
+    resampled_means = np.mean(
+        np.random.choice(arr, size=(n_resamples, len(arr)), replace=True), axis=1
+    )
+    lower, upper = np.percentile(resampled_means, [2.5, 97.5])
+    return mean, float((upper - lower) / 2)
+
+
 def compute_cohens_d(
     baseline: np.ndarray, method: np.ndarray, paired: bool = False
 ) -> float:
@@ -87,6 +102,15 @@ def format_mean_ci(values: list[float], scale: float = 1.0) -> str:
     """Format mean ± 95% CI string for ``values`` with optional scaling."""
     scaled = np.asarray(values, dtype=float) * scale
     mean, ci = mean_ci(scaled)
+    return f"{mean:.2f} ± {ci:.2f}"
+
+
+def format_bootstrap_ci(
+    values: list[float], scale: float = 1.0, n_resamples: int = 10_000
+) -> str:
+    """Format mean ± 95% bootstrap CI string for ``values``."""
+    scaled = np.asarray(values, dtype=float) * scale
+    mean, ci = bootstrap_ci(scaled, n_resamples=n_resamples)
     return f"{mean:.2f} ± {ci:.2f}"
 
 
@@ -1431,7 +1455,7 @@ def run(args):
                 check_reward_difference_ci(
                     flatten_metric(metrics["PPO Only"]["rewards"]),
                     flatten_metric(data["rewards"]))
-            success = format_mean_ci(flatten_metric(data["success"]))
+            success = format_bootstrap_ci(flatten_metric(data["success"]))
             planner = format_mean_ci(data["planner_pct"], scale=100)
             mask_rate = format_mean_ci(data["mask_rate"])
             adherence = format_mean_ci(data["adherence_rate"])
@@ -1442,7 +1466,7 @@ def run(args):
             wall_time = format_mean_ci(data["wall_time"])
             spikes = format_mean_ci(data["spikes"])
             train_cost = format_mean_ci(data["episode_costs"])
-            violation = format_mean_ci(data["violation_flags"])
+            violation = format_bootstrap_ci(data["violation_flags"])
             fve_mean, fve_ci = mean_ci(data["first_violation_episode"])
             fve_str = f"{fve_mean:.2f} ± {fve_ci:.2f}"
 
