@@ -105,7 +105,8 @@ def generate_results_table(df: pd.DataFrame, output_path: str) -> None:
     base, ext = os.path.splitext(output_path)
     os.makedirs(os.path.dirname(base) or ".", exist_ok=True)
 
-    if "Reward p-value" in df.columns:
+    p_col = "Reward p-adj" if "Reward p-adj" in df.columns else "Reward p-value"
+    if p_col in df.columns:
         def _mark(p: float) -> str:
             if pd.isna(p):
                 return ""
@@ -116,7 +117,7 @@ def generate_results_table(df: pd.DataFrame, output_path: str) -> None:
             return ""
 
         df = df.copy()
-        df["Significance"] = df["Reward p-value"].apply(_mark)
+        df["Significance"] = df[p_col].apply(_mark)
 
     csv_path = base + ".csv"
     df.to_csv(csv_path, index=False)

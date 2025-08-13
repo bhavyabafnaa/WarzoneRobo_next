@@ -15,6 +15,7 @@ from scipy.stats import (
     mannwhitneyu,
     f_oneway,
 )
+from statsmodels.stats.multitest import multipletests
 
 from src.env import (
     GridWorldICM,
@@ -46,6 +47,40 @@ def mean_ci(values: list[float]) -> tuple[float, float]:
         return mean, 0.0
     ci = float(stats.sem(arr) * stats.t.ppf(0.975, len(arr) - 1))
     return mean, ci
+
+
+def compute_cohens_d(
+    baseline: np.ndarray, method: np.ndarray, paired: bool = False
+) -> float:
+    """Compute Cohen's d effect size between two samples.
+
+    If ``paired`` is ``True`` the effect size is computed on the differences
+    between paired observations. Otherwise, the pooled standard deviation of
+    the two samples is used. ``baseline`` and ``method`` correspond to the
+    baseline and comparison samples respectively, so a positive value indicates
+    the comparison sample has a higher mean.
+    """
+
+    x = np.asarray(baseline, dtype=float)
+    y = np.asarray(method, dtype=float)
+    if paired:
+        if x.shape != y.shape:
+            raise ValueError("Paired samples must have the same shape")
+        diff = y - x
+        denom = diff.std(ddof=1)
+        if denom == 0:
+            return 0.0
+        return diff.mean() / denom
+    n1 = x.size
+    n2 = y.size
+    if n1 < 2 or n2 < 2:
+        return 0.0
+    var1 = x.var(ddof=1)
+    var2 = y.var(ddof=1)
+    pooled = np.sqrt(((n1 - 1) * var1 + (n2 - 1) * var2) / (n1 + n2 - 2))
+    if pooled == 0:
+        return 0.0
+    return (y.mean() - x.mean()) / pooled
 
 
 def format_mean_ci(values: list[float], scale: float = 1.0) -> str:
@@ -1327,13 +1362,29 @@ def run(args):
                 anova_success_p = f_oneway(*success_groups).pvalue
 
         results = []
+        reward_ps: list[float] = []
+        reward_idx: list[int] = []
+        success_ps: list[float] = []
+        success_idx: list[int] = []
         for name, data in metrics.items():
             if args.stat_test == "anova":
                 p_reward = anova_reward_p
                 p_success = anova_success_p
+                if name == "PPO Only":
+                    reward_effect = np.nan
+                    success_effect = np.nan
+                else:
+                    reward_effect = compute_cohens_d(
+                        baseline_rewards, flatten_metric(data["rewards"])
+                    )
+                    success_effect = compute_cohens_d(
+                        baseline_success, flatten_metric(data["success"])
+                    )
             elif name == "PPO Only":
                 p_reward = np.nan
                 p_success = np.nan
+                reward_effect = np.nan
+                success_effect = np.nan
             else:
                 base_arr, meth_arr = get_paired_arrays(
                     metrics["PPO Only"]["rewards"], data["rewards"])
@@ -1342,12 +1393,38 @@ def run(args):
                 if args.stat_test == "paired":
                     p_reward = ttest_rel(base_arr, meth_arr).pvalue
                     p_success = ttest_rel(base_succ, meth_succ).pvalue
+                    reward_effect = compute_cohens_d(base_arr, meth_arr, paired=True)
+                    success_effect = compute_cohens_d(base_succ, meth_succ, paired=True)
                 elif args.stat_test == "welch":
-                    p_reward = ttest_ind(baseline_rewards, flatten_metric(data["rewards"]), equal_var=False).pvalue
-                    p_success = ttest_ind(baseline_success, flatten_metric(data["success"]), equal_var=False).pvalue
+                    meth_rewards = flatten_metric(data["rewards"])
+                    meth_success = flatten_metric(data["success"])
+                    p_reward = ttest_ind(
+                        baseline_rewards, meth_rewards, equal_var=False
+                    ).pvalue
+                    p_success = ttest_ind(
+                        baseline_success, meth_success, equal_var=False
+                    ).pvalue
+                    reward_effect = compute_cohens_d(
+                        baseline_rewards, meth_rewards
+                    )
+                    success_effect = compute_cohens_d(
+                        baseline_success, meth_success
+                    )
                 else:  # mannwhitney
-                    p_reward = mannwhitneyu(baseline_rewards, flatten_metric(data["rewards"]), alternative="two-sided").pvalue
-                    p_success = mannwhitneyu(baseline_success, flatten_metric(data["success"]), alternative="two-sided").pvalue
+                    meth_rewards = flatten_metric(data["rewards"])
+                    meth_success = flatten_metric(data["success"])
+                    p_reward = mannwhitneyu(
+                        baseline_rewards, meth_rewards, alternative="two-sided"
+                    ).pvalue
+                    p_success = mannwhitneyu(
+                        baseline_success, meth_success, alternative="two-sided"
+                    ).pvalue
+                    reward_effect = compute_cohens_d(
+                        baseline_rewards, meth_rewards
+                    )
+                    success_effect = compute_cohens_d(
+                        baseline_success, meth_success
+                    )
             reward_mean, reward_ci = mean_ci(flatten_metric(data["rewards"]))
             reward = f"{reward_mean:.2f} ± {reward_ci:.2f}"
             if name != "PPO Only":
@@ -1390,8 +1467,18 @@ def run(args):
                     "First Violation Episode": fve_str,
                     "Reward p-value": p_reward,
                     "Success p-value": p_success,
+                    "Reward effect size": reward_effect,
+                    "Success effect size": success_effect,
+                    "Reward p-adj": np.nan,
+                    "Success p-adj": np.nan,
                 }
             )
+            if not np.isnan(p_reward):
+                reward_ps.append(p_reward)
+                reward_idx.append(len(results) - 1)
+            if not np.isnan(p_success):
+                success_ps.append(p_success)
+                success_idx.append(len(results) - 1)
 
         bench_results = []
         for name, vals in bench.items():
@@ -1404,6 +1491,15 @@ def run(args):
                         "Benchmark Reward": format_mean_ci(vals),
                     }
                 )
+
+        if reward_ps:
+            _, padj, _, _ = multipletests(reward_ps, method="holm")
+            for i, adj in zip(reward_idx, padj):
+                results[i]["Reward p-adj"] = adj
+        if success_ps:
+            _, padj, _, _ = multipletests(success_ps, method="holm")
+            for i, adj in zip(success_idx, padj):
+                results[i]["Success p-adj"] = adj
 
         all_results.extend(results)
         all_bench.extend(bench_results)

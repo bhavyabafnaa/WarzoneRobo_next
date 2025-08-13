@@ -7,8 +7,9 @@ from src.icm import ICMModule
 from src.planner import SymbolicPlanner
 from src.pseudocount import PseudoCountExploration
 from src.ppo import PPOPolicy, train_agent, get_beta_schedule
-from train import evaluate_policy_on_maps, get_paired_arrays
+from train import evaluate_policy_on_maps, get_paired_arrays, compute_cohens_d
 from scipy.stats import ttest_rel
+from statsmodels.stats.multitest import multipletests
 import yaml
 import numpy as np
 
@@ -288,3 +289,37 @@ def test_paired_arrays_equal_length():
     assert len(base_arr) == len(meth_arr)
     # Should run without raising due to mismatched lengths
     ttest_rel(base_arr, meth_arr)
+
+
+def test_effect_size_and_holm_adjustment():
+    baseline = {0: [1.0, 2.0, 3.0], 1: [2.0, 3.0, 4.0]}
+    method_a = {0: [2.0, 2.0, 4.0], 1: [3.0, 4.0, 5.0]}
+    method_b = {0: [1.1, 1.9, 3.1], 1: [1.9, 3.1, 3.9]}
+
+    base_a, meth_a = get_paired_arrays(baseline, method_a)
+    base_b, meth_b = get_paired_arrays(baseline, method_b)
+
+    p_a = ttest_rel(base_a, meth_a).pvalue
+    p_b = ttest_rel(base_b, meth_b).pvalue
+
+    effect_a = compute_cohens_d(base_a, meth_a, paired=True)
+    effect_b = compute_cohens_d(base_b, meth_b, paired=True)
+
+    # Known values from manual computation
+    assert effect_a == pytest.approx(2.04124, rel=1e-3)
+    assert effect_b == pytest.approx(0.0, abs=1e-6)
+
+    pvals = [p_a, p_b]
+    _, padj, _, _ = multipletests(pvals, method="holm")
+
+    # Manual Holm-Bonferroni calculation
+    m = len(pvals)
+    order = np.argsort(pvals)
+    expected = np.empty(m)
+    prev = 0.0
+    for i, idx in enumerate(order):
+        adj = (m - i) * pvals[idx]
+        prev = max(prev, adj)
+        expected[idx] = min(1.0, prev)
+
+    assert padj == pytest.approx(expected)

@@ -7,5 +7,6 @@ seaborn
 pandas
 imageio
 scipy
+statsmodels
 wandb
 tensorboard
