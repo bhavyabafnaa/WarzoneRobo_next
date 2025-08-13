@@ -93,7 +93,7 @@ def train_agent(
     logger=None,
     initial_bonus: float = 0.5,
     reset_env: bool = True,
-    lambda_cost: float = 1.0,
+    lambda_cost: float = 0.0,
     eta_lambda: float = 0.01,
     cost_limit: float = 1.0,
     c1: float = 1.0,

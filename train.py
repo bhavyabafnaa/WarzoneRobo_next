@@ -333,10 +333,16 @@ def parse_args():
     parser.add_argument("--risk_weight", type=float, default=3.0)
     parser.add_argument("--revisit_penalty", type=float, default=1.0)
     parser.add_argument(
+        "--lambda_cost",
+        type=float,
+        default=0.0,
+        help="Initial value for the Lagrange multiplier",
+    )
+    parser.add_argument(
         "--eta_lambda",
         type=float,
         choices=[0.01, 0.05],
-        default=0.01,
+        default=0.05,
         help="Learning rate for lambda update",
     )
     parser.add_argument(
@@ -344,7 +350,7 @@ def parse_args():
         "--d",
         dest="cost_limit",
         type=float,
-        default=1.0,
+        default=0.05,
         help="Cost threshold for constraint",
     )
     parser.add_argument("--c1", type=float, default=1.0)
@@ -831,6 +837,7 @@ def run(args):
                 seed=run_seed,
                 add_noise=args.add_noise,
                 logger=logger,
+                lambda_cost=args.lambda_cost,
                 eta_lambda=args.eta_lambda,
                 cost_limit=args.cost_limit,
                 c1=args.c1,
@@ -942,6 +949,7 @@ def run(args):
                     seed=run_seed,
                     add_noise=args.add_noise,
                     logger=logger,
+                    lambda_cost=args.lambda_cost,
                     eta_lambda=args.eta_lambda,
                     cost_limit=args.cost_limit,
                     c1=args.c1,
@@ -1055,6 +1063,7 @@ def run(args):
                 seed=run_seed,
                 add_noise=args.add_noise,
                 logger=logger,
+                lambda_cost=args.lambda_cost,
                 eta_lambda=args.eta_lambda,
                 cost_limit=args.cost_limit,
                 c1=args.c1,
@@ -1166,6 +1175,7 @@ def run(args):
                     seed=run_seed,
                     add_noise=args.add_noise,
                     logger=logger,
+                    lambda_cost=args.lambda_cost,
                     eta_lambda=args.eta_lambda,
                     cost_limit=args.cost_limit,
                     c1=args.c1,
@@ -1296,6 +1306,7 @@ def run(args):
                 seed=run_seed,
                 add_noise=args.add_noise,
                 logger=logger,
+                lambda_cost=args.lambda_cost,
                 eta_lambda=args.eta_lambda,
                 cost_limit=args.cost_limit,
                 c1=args.c1,
@@ -1410,6 +1421,7 @@ def run(args):
                     seed=run_seed,
                     add_noise=args.add_noise,
                     logger=logger,
+                    lambda_cost=args.lambda_cost,
                     eta_lambda=args.eta_lambda,
                     cost_limit=args.cost_limit,
                     c1=args.c1,

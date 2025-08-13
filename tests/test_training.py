@@ -44,6 +44,7 @@ def test_short_training_loop(tmp_path, budget):
             use_icm=False,
             use_planner=False,
             num_episodes=1,
+            lambda_cost=0.0,
             eta_lambda=0.05,
             cost_limit=budget,
             c1=1.0,
@@ -84,7 +85,8 @@ def test_training_one_episode_metrics(tmp_path, budget):
             use_icm=False,
             use_planner=False,
             num_episodes=1,
-            eta_lambda=cfg.get("eta_lambda", 0.01),
+            lambda_cost=cfg.get("lambda_cost", 0.0),
+            eta_lambda=cfg.get("eta_lambda", 0.05),
             cost_limit=budget,
             c1=cfg.get("c1", 1.0),
             c2=cfg.get("c2", 0.5),
@@ -160,6 +162,7 @@ def test_success_flag_survival(tmp_path, budget):
             use_planner=False,
             num_episodes=1,
             reset_env=False,
+            lambda_cost=0.0,
             eta_lambda=0.05,
             cost_limit=budget,
             c1=1.0,
@@ -195,6 +198,7 @@ def test_beta_schedule_consistency():
         use_planner=False,
         num_episodes=3,
         beta_schedule=schedule,
+        lambda_cost=0.0,
     )
     rewards1, *_, beta_log1 = metrics1
     assert len(rewards1) == 3
@@ -217,6 +221,7 @@ def test_beta_schedule_consistency():
         pseudo=pseudo,
         num_episodes=3,
         beta_schedule=schedule,
+        lambda_cost=0.0,
     )
     rewards2, *_, beta_log2 = metrics2
     assert len(rewards2) == 3
@@ -249,6 +254,7 @@ def test_allow_early_stop_asserts():
             use_planner=False,
             num_episodes=1,
             allow_early_stop=True,
+            lambda_cost=0.0,
         )
 
 
