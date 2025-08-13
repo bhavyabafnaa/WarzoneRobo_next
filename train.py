@@ -39,6 +39,41 @@ from src.ppo import PPOPolicy, train_agent, get_beta_schedule
 from src.utils import save_model, count_intrinsic_spikes
 
 
+# Canonical method names used for the main results table
+MAIN_METHODS = [
+    "PPO",
+    "PPO+ICM",
+    "PPO+RND",
+    "Count",
+    "PC",
+    "LPPO",
+    "Shielded-PPO",
+    "Planner-only",
+    "Planner-Subgoal PPO",
+    "Dyna-PPO(1)",
+    "Hybrid PPO+ICM+Planner",
+]
+
+# Mapping from internal model names to canonical names
+NAME_MAP = {
+    "PPO Only": "PPO",
+    "PPO + ICM": "PPO+ICM",
+    "PPO + RND": "PPO+RND",
+    "PPO + count": "Count",
+    "PPO + PC": "PC",
+    "PPO + ICM + Planner": "Hybrid PPO+ICM+Planner",
+}
+
+
+def build_main_table(df_train: pd.DataFrame) -> pd.DataFrame:
+    """Return the filtered main results table with selected metrics."""
+
+    cols = ["Model", "Train Reward", "Success", "Train Cost", "Pr[Jc > d]"]
+    if "Model" not in df_train.columns:
+        return pd.DataFrame(columns=cols)
+    return df_train[df_train["Model"].isin(MAIN_METHODS)][cols].reset_index(drop=True)
+
+
 def mean_ci(values: list[float]) -> tuple[float, float]:
     """Return the mean and 95% confidence interval for ``values``."""
     if not values:
@@ -1583,9 +1618,15 @@ def run(args):
         all_bench.extend(bench_results)
 
     df_train = pd.DataFrame(all_results)
+    df_train["Model"] = df_train["Model"].replace(NAME_MAP)
     generate_results_table(
         df_train, os.path.join(result_dir, "training_results.html")
     )
+    df_main = build_main_table(df_train)
+    if not df_main.empty:
+        generate_results_table(
+            df_main, os.path.join(result_dir, "main_table.html")
+        )
     if all_bench:
         df_bench = pd.DataFrame(all_bench)
         generate_results_table(
