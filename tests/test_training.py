@@ -49,7 +49,10 @@ def test_short_training_loop(tmp_path, budget):
             cost_limit=budget,
             c1=1.0,
             c2=0.5,
-            c3=0.01,
+            entropy_coef=0.01,
+            clip_epsilon=0.2,
+            gamma=0.99,
+            gae_lambda=0.95,
             seed=run_seed,
         )
         rewards_runs.append(metrics[0])
@@ -90,7 +93,10 @@ def test_training_one_episode_metrics(tmp_path, budget):
             cost_limit=budget,
             c1=cfg.get("c1", 1.0),
             c2=cfg.get("c2", 0.5),
-            c3=cfg.get("c3", 0.01),
+            entropy_coef=cfg.get("entropy_coef", 0.01),
+            clip_epsilon=0.2,
+            gamma=0.99,
+            gae_lambda=0.95,
             seed=run_seed,
         )
         metrics_list.append(metrics)
@@ -167,7 +173,10 @@ def test_success_flag_survival(tmp_path, budget):
             cost_limit=budget,
             c1=1.0,
             c2=0.5,
-            c3=0.01,
+            entropy_coef=0.01,
+            clip_epsilon=0.2,
+            gamma=0.99,
+            gae_lambda=0.95,
         )
         rewards, _, _, _, _, _, success_flags, *_rest = metrics
         assert success_flags == [1]

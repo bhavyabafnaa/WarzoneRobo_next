@@ -355,7 +355,11 @@ def parse_args():
     )
     parser.add_argument("--c1", type=float, default=1.0)
     parser.add_argument("--c2", type=float, default=0.5)
-    parser.add_argument("--c3", type=float, default=0.01)
+    parser.add_argument("--entropy_coef", type=float, default=0.01)
+    parser.add_argument("--learning_rate", type=float, default=3e-4)
+    parser.add_argument("--clip_epsilon", type=float, default=0.2)
+    parser.add_argument("--gamma", type=float, default=0.99)
+    parser.add_argument("--gae_lambda", type=float, default=0.95)
     parser.add_argument(
         "--tau",
         type=float,
@@ -800,7 +804,7 @@ def run(args):
             # PPO only
             print("Training PPO Only")
             ppo_policy = PPOPolicy(input_dim, action_dim)
-            opt_ppo = optim.Adam(ppo_policy.parameters(), lr=3e-4)
+            opt_ppo = optim.Adam(ppo_policy.parameters(), lr=args.learning_rate)
             (
                 rewards_ppo_only,
                 intrinsic_ppo_only,
@@ -842,7 +846,7 @@ def run(args):
                 cost_limit=args.cost_limit,
                 c1=args.c1,
                 c2=args.c2,
-                c3=args.c3,
+                entropy_coef=args.entropy_coef,
                 tau=args.tau,
                 kappa=args.kappa,
                 use_risk_penalty=not args.disable_risk_penalty,
@@ -850,6 +854,9 @@ def run(args):
                 waypoint_bonus=args.waypoint_bonus,
                 imagination_k=args.K,
                 world_model_lr=args.world_model_lr,
+                clip_epsilon=args.clip_epsilon,
+                gamma=args.gamma,
+                gae_lambda=args.gae_lambda,
             )
             metrics["PPO Only"]["planner_pct"].append(
                 float(np.mean(planner_rate_ppo_only)))
@@ -913,7 +920,7 @@ def run(args):
                 print("Training PPO + ICM")
                 ppo_icm_policy = PPOPolicy(input_dim, action_dim)
                 opt_icm_policy = optim.Adam(
-                    ppo_icm_policy.parameters(), lr=3e-4)
+                    ppo_icm_policy.parameters(), lr=args.learning_rate)
                 (
                     rewards_ppo_icm,
                     intrinsic_icm,
@@ -955,7 +962,7 @@ def run(args):
                     cost_limit=args.cost_limit,
                     c1=args.c1,
                     c2=args.c2,
-                    c3=args.c3,
+                    entropy_coef=args.entropy_coef,
                     tau=args.tau,
                     kappa=args.kappa,
                     use_risk_penalty=not args.disable_risk_penalty,
@@ -963,6 +970,9 @@ def run(args):
                     waypoint_bonus=args.waypoint_bonus,
                     imagination_k=args.K,
                     world_model_lr=args.world_model_lr,
+                    clip_epsilon=args.clip_epsilon,
+                    gamma=args.gamma,
+                    gae_lambda=args.gae_lambda,
                 )
                 metrics["PPO + ICM"]["planner_pct"].append(
                     float(np.mean(planner_rate_icm)))
@@ -1026,7 +1036,7 @@ def run(args):
             # PPO + Pseudo-count exploration
             print("Training PPO + PC")
             ppo_pc_policy = PPOPolicy(input_dim, action_dim)
-            opt_pc_policy = optim.Adam(ppo_pc_policy.parameters(), lr=3e-4)
+            opt_pc_policy = optim.Adam(ppo_pc_policy.parameters(), lr=args.learning_rate)
             pseudo = PseudoCountExploration()
             (
                 rewards_pc,
@@ -1069,7 +1079,7 @@ def run(args):
                 cost_limit=args.cost_limit,
                 c1=args.c1,
                 c2=args.c2,
-                c3=args.c3,
+                entropy_coef=args.entropy_coef,
                 tau=args.tau,
                 kappa=args.kappa,
                 use_risk_penalty=not args.disable_risk_penalty,
@@ -1077,6 +1087,9 @@ def run(args):
                 waypoint_bonus=args.waypoint_bonus,
                 imagination_k=args.K,
                 world_model_lr=args.world_model_lr,
+                clip_epsilon=args.clip_epsilon,
+                gamma=args.gamma,
+                gae_lambda=args.gae_lambda,
             )
             metrics["PPO + PC"]["planner_pct"].append(
                 float(np.mean(planner_rate_pc)))
@@ -1140,7 +1153,7 @@ def run(args):
                 print("Training PPO + ICM + Planner")
                 ppo_icm_planner_policy = PPOPolicy(input_dim, action_dim)
                 opt_plan_policy = optim.Adam(
-                    ppo_icm_planner_policy.parameters(), lr=3e-4)
+                    ppo_icm_planner_policy.parameters(), lr=args.learning_rate)
                 (
                     rewards_ppo_icm_plan,
                     intrinsic_plan,
@@ -1182,7 +1195,7 @@ def run(args):
                     cost_limit=args.cost_limit,
                     c1=args.c1,
                     c2=args.c2,
-                    c3=args.c3,
+                    entropy_coef=args.entropy_coef,
                     tau=args.tau,
                     kappa=args.kappa,
                     use_risk_penalty=not args.disable_risk_penalty,
@@ -1190,6 +1203,9 @@ def run(args):
                     waypoint_bonus=args.waypoint_bonus,
                     imagination_k=args.K,
                     world_model_lr=args.world_model_lr,
+                    clip_epsilon=args.clip_epsilon,
+                    gamma=args.gamma,
+                    gae_lambda=args.gae_lambda,
                 )
                 metrics["PPO + ICM + Planner"]["planner_pct"].append(
                     float(np.mean(planner_rate_plan)))
@@ -1272,7 +1288,7 @@ def run(args):
             print("Training PPO + count")
             ppo_count_policy = PPOPolicy(input_dim, action_dim)
             opt_count_policy = optim.Adam(
-                ppo_count_policy.parameters(), lr=3e-4)
+                ppo_count_policy.parameters(), lr=args.learning_rate)
             (
                 rewards_ppo_count,
                 intrinsic_count,
@@ -1313,7 +1329,7 @@ def run(args):
                 cost_limit=args.cost_limit,
                 c1=args.c1,
                 c2=args.c2,
-                c3=args.c3,
+                entropy_coef=args.entropy_coef,
                 tau=args.tau,
                 kappa=args.kappa,
                 use_risk_penalty=not args.disable_risk_penalty,
@@ -1321,6 +1337,9 @@ def run(args):
                 waypoint_bonus=args.waypoint_bonus,
                 imagination_k=args.K,
                 world_model_lr=args.world_model_lr,
+                clip_epsilon=args.clip_epsilon,
+                gamma=args.gamma,
+                gae_lambda=args.gae_lambda,
             )
             metrics["PPO + count"]["planner_pct"].append(
                 float(np.mean(planner_rate_count)))
@@ -1384,7 +1403,7 @@ def run(args):
                 print("Training PPO + RND")
                 ppo_rnd_policy = PPOPolicy(input_dim, action_dim)
                 opt_rnd_policy = optim.Adam(
-                    ppo_rnd_policy.parameters(), lr=3e-4)
+                    ppo_rnd_policy.parameters(), lr=args.learning_rate)
                 rnd = RNDModule(input_dim)
                 opt_rnd = optim.Adam(rnd.predictor.parameters(), lr=1e-3)
                 (
@@ -1428,7 +1447,7 @@ def run(args):
                     cost_limit=args.cost_limit,
                     c1=args.c1,
                     c2=args.c2,
-                    c3=args.c3,
+                    entropy_coef=args.entropy_coef,
                     tau=args.tau,
                     kappa=args.kappa,
                     use_risk_penalty=not args.disable_risk_penalty,
@@ -1436,6 +1455,9 @@ def run(args):
                     waypoint_bonus=args.waypoint_bonus,
                     imagination_k=args.K,
                     world_model_lr=args.world_model_lr,
+                    clip_epsilon=args.clip_epsilon,
+                    gamma=args.gamma,
+                    gae_lambda=args.gae_lambda,
                 )
                 metrics["PPO + RND"]["planner_pct"].append(
                     float(np.mean(planner_rate_rnd)))
