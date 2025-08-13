@@ -7,7 +7,12 @@ from src.icm import ICMModule
 from src.planner import SymbolicPlanner
 from src.pseudocount import PseudoCountExploration
 from src.ppo import PPOPolicy, train_agent, get_beta_schedule
-from train import evaluate_policy_on_maps, get_paired_arrays, compute_cohens_d
+from train import (
+    evaluate_policy_on_maps,
+    get_paired_arrays,
+    compute_cohens_d,
+    bootstrap_ci,
+)
 from scipy.stats import ttest_rel
 from statsmodels.stats.multitest import multipletests
 import yaml
@@ -323,3 +328,15 @@ def test_effect_size_and_holm_adjustment():
         expected[idx] = min(1.0, prev)
 
     assert padj == pytest.approx(expected)
+
+
+def test_bootstrap_ci_shrinkage():
+    np.random.seed(0)
+    small = np.random.binomial(1, 0.5, size=20)
+    np.random.seed(1)
+    large = np.random.binomial(1, 0.5, size=200)
+    np.random.seed(0)
+    _, ci_small = bootstrap_ci(small, n_resamples=1000)
+    np.random.seed(0)
+    _, ci_large = bootstrap_ci(large, n_resamples=1000)
+    assert ci_large < ci_small
