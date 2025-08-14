@@ -10,6 +10,7 @@ from src.visualization import (
     plot_violation_rate,
     plot_coverage_heatmap,
     plot_ablation_radar,
+    plot_violation_comparison,
 )
 
 
@@ -71,6 +72,18 @@ def test_plot_violation_rate(tmp_path):
     logs = [[0, 1, 0, 1, 0], [0, 0, 1, 0, 0]]
     output = tmp_path / "violation.pdf"
     plot_violation_rate(logs, str(output))
+    assert output.exists()
+
+
+def test_plot_violation_comparison(tmp_path):
+    logs = {
+        "PPO Only": [[0, 1, 0], [0, 0, 1]],
+        "LPPO": [[0, 0, 0], [0, 1, 0]],
+        "Shielded-PPO": [[0, 0, 0, 0], [0, 0, 1, 0]],
+        "PPO + ICM + Planner": [[1, 0, 0], [0, 1, 1]],
+    }
+    output = tmp_path / "violation_compare.pdf"
+    plot_violation_comparison(logs, str(output))
     assert output.exists()
 
 

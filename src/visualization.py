@@ -138,6 +138,74 @@ def plot_violation_rate(logs: list[list[float]] | None, output_path: str | None 
     plt.show()
 
 
+def plot_violation_comparison(
+    method_logs: dict[str, list[list[float]]], output_path: str | None = None
+) -> None:
+    """Overlay mean violation rates with 95% CI bands for each method.
+
+    Parameters
+    ----------
+    method_logs:
+        Mapping from method name to a list of violation flag sequences, one per
+        seed. Each sequence should be a list of binary values indicating whether
+        a constraint violation occurred on that episode.
+    output_path:
+        Optional path to save the resulting figure. The file format is inferred
+        from the extension and defaults to PDF.
+    """
+
+    if not method_logs:
+        return
+
+    sns.set(style="darkgrid")
+    fig, ax = plt.subplots(figsize=(6, 4))
+
+    plotted = False
+    for name, logs in method_logs.items():
+        if not logs:
+            continue
+        if logs and not isinstance(logs[0], (list, np.ndarray)):
+            logs = [logs]
+
+        rates = [
+            np.cumsum(seed) / (np.arange(len(seed)) + 1)
+            for seed in logs
+        ]
+        min_len = min(len(r) for r in rates)
+        arr = np.stack([r[:min_len] for r in rates])
+        episodes = np.arange(1, min_len + 1)
+
+        mean = arr.mean(axis=0)
+        n = arr.shape[0]
+        if n > 1:
+            sem = arr.std(axis=0, ddof=1) / np.sqrt(n)
+            ci = 1.96 * sem
+        else:
+            ci = np.zeros_like(mean)
+
+        ax.plot(episodes, mean, label=name)
+        ax.fill_between(episodes, mean - ci, mean + ci, alpha=0.3)
+        plotted = True
+
+    if not plotted:
+        plt.close(fig)
+        return
+
+    ax.set_ylim(0, 1)
+    ax.set_xlabel("Episode")
+    ax.set_ylabel("Violation Probability")
+    ax.set_title("Constraint Violation Comparison")
+    ax.legend()
+
+    plt.tight_layout()
+    if output_path is not None:
+        os.makedirs(os.path.dirname(output_path) or ".", exist_ok=True)
+        ext = os.path.splitext(output_path)[1].lower()
+        fmt = "svg" if ext == ".svg" else "pdf"
+        plt.savefig(output_path, format=fmt)
+    plt.show()
+
+
 def plot_learning_panels(
     metrics_dict: dict[str, dict[str, list[list[float]]]],
     output_path: str | None = None,

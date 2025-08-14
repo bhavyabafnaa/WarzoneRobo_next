@@ -34,6 +34,7 @@ from src.visualization import (
     generate_results_table,
     render_episode_video,
     plot_violation_rate,
+    plot_violation_comparison,
 )
 from src.icm import ICMModule
 from src.rnd import RNDModule
@@ -1559,6 +1560,22 @@ def run(args):
                         logs_dict["violation_flags"], output_path=out_file_vr
                     )
                 panel_logs[name] = metrics_to_plot
+
+        comparison_logs: dict[str, list[list[float]]] = {}
+        for method in [
+            "PPO Only",
+            "LPPO",
+            "Shielded-PPO",
+            "PPO + ICM + Planner",
+        ]:
+            logs = curve_logs.get(method, {}).get("violation_flags", [])
+            if logs:
+                comparison_logs[method] = logs
+        if comparison_logs:
+            cmp_path = None
+            if plot_dir:
+                cmp_path = os.path.join(plot_dir, "violation_compare.pdf")
+            plot_violation_comparison(comparison_logs, output_path=cmp_path)
         if panel_logs:
             out_file = None
             if plot_dir:
