@@ -52,6 +52,21 @@ def test_plot_learning_panels(tmp_path):
     assert output.exists()
 
 
+def test_plot_pareto_multiple_methods(tmp_path):
+    df = pd.DataFrame(
+        {
+            "Model": ["A", "B", "C"],
+            "Reward Mean": [1.0, 2.0, 3.0],
+            "Reward CI": [0.1, 0.2, 0.3],
+            "Cost Mean": [0.4, 0.5, 0.6],
+            "Cost CI": [0.04, 0.05, 0.06],
+        }
+    )
+    output = tmp_path / "pareto_multi.pdf"
+    plot_pareto(df, 0.55, str(output))
+    assert output.exists()
+
+
 def test_plot_violation_rate(tmp_path):
     logs = [[0, 1, 0, 1, 0], [0, 0, 1, 0, 0]]
     output = tmp_path / "violation.pdf"

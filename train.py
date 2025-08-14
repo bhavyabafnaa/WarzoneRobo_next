@@ -18,6 +18,7 @@ from scipy.stats import (
 from statsmodels.stats.oneway import anova_oneway
 from statsmodels.stats.multitest import multipletests
 import pingouin as pg
+from collections import defaultdict
 
 from src.env import (
     GridWorldICM,
@@ -639,6 +640,9 @@ def run(args):
 
     all_results = []
     all_bench = []
+    pareto_metrics: dict[str, dict[str, list[float]]] = defaultdict(
+        lambda: {"rewards": [], "costs": []}
+    )
 
     for setting in settings:
         args.disable_icm = setting["icm"]
@@ -1838,30 +1842,38 @@ def run(args):
             _, padj, _, _ = multipletests(violation_ps, method="holm")
             for i, adj in zip(violation_idx, padj):
                 results[i]["Violation p-adj"] = adj
-        pareto_rows = []
         for name, data in metrics.items():
             if data["rewards"] and data["episode_costs"]:
-                r_mean, r_ci = mean_ci(flatten_metric(data["rewards"]))
-                c_mean, c_ci = mean_ci(data["episode_costs"])
-                pareto_rows.append(
-                    {
-                        "Model": name,
-                        "Reward Mean": r_mean,
-                        "Reward CI": r_ci,
-                        "Cost Mean": c_mean,
-                        "Cost CI": c_ci,
-                    }
+                pareto_metrics[name]["rewards"].extend(
+                    flatten_metric(data["rewards"])
                 )
-        if pareto_rows:
-            pareto_df = pd.DataFrame(pareto_rows)
-            out_file = None
-            if plot_dir:
-                safe_setting = setting["name"].replace(" ", "_")
-                out_file = os.path.join(plot_dir, f"{safe_setting}_pareto.pdf")
-            plot_pareto(pareto_df, args.cost_limit, out_file)
+                pareto_metrics[name]["costs"].extend(data["episode_costs"])
 
         all_results.extend(results)
         all_bench.extend(bench_results)
+
+    pareto_rows = []
+    for name, data in pareto_metrics.items():
+        if data["rewards"] and data["costs"]:
+            r_mean, r_ci = mean_ci(data["rewards"])
+            c_mean, c_ci = mean_ci(data["costs"])
+            pareto_rows.append(
+                {
+                    "Model": name,
+                    "Reward Mean": r_mean,
+                    "Reward CI": r_ci,
+                    "Cost Mean": c_mean,
+                    "Cost CI": c_ci,
+                }
+            )
+    if pareto_rows:
+        pareto_df = pd.DataFrame(pareto_rows)
+        pareto_df["Model"] = pareto_df["Model"].replace(NAME_MAP)
+        plot_pareto(
+            pareto_df,
+            args.cost_limit,
+            os.path.join(figure_dir, "pareto_all.pdf"),
+        )
 
     df_train = pd.DataFrame(all_results)
     df_train["Model"] = df_train["Model"].replace(NAME_MAP)
