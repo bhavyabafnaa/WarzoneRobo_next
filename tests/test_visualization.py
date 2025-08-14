@@ -77,10 +77,12 @@ def test_plot_violation_rate(tmp_path):
 
 def test_plot_violation_comparison(tmp_path):
     logs = {
-        "PPO Only": [[0, 1, 0], [0, 0, 1]],
-        "LPPO": [[0, 0, 0], [0, 1, 0]],
-        "Shielded-PPO": [[0, 0, 0, 0], [0, 0, 1, 0]],
-        "PPO + ICM + Planner": [[1, 0, 0], [0, 1, 1]],
+        # Different seeds have different episode lengths to ensure the
+        # comparison routine can handle variable-length logs.
+        "PPO Only": [[0, 1, 0], [0, 0, 1, 1]],
+        "LPPO": [[0, 0], [0, 1, 0]],
+        "Shielded-PPO": [[0, 0, 0], [0, 0, 1, 0, 0]],
+        "PPO + ICM + Planner": [[1, 0, 0], [0, 1, 1, 0]],
     }
     output = tmp_path / "violation_compare.pdf"
     plot_violation_comparison(logs, str(output))

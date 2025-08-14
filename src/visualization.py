@@ -167,24 +167,22 @@ def plot_violation_comparison(
         if logs and not isinstance(logs[0], (list, np.ndarray)):
             logs = [logs]
 
+        # Convert violation flags to running probabilities for each seed
         rates = [
             np.cumsum(seed) / (np.arange(len(seed)) + 1)
             for seed in logs
         ]
-        min_len = min(len(r) for r in rates)
-        arr = np.stack([r[:min_len] for r in rates])
-        episodes = np.arange(1, min_len + 1)
-
-        mean = arr.mean(axis=0)
-        n = arr.shape[0]
-        if n > 1:
-            sem = arr.std(axis=0, ddof=1) / np.sqrt(n)
-            ci = 1.96 * sem
-        else:
-            ci = np.zeros_like(mean)
-
-        ax.plot(episodes, mean, label=name)
-        ax.fill_between(episodes, mean - ci, mean + ci, alpha=0.3)
+        df = _stack_logs(rates, "Rate")
+        if df.empty:
+            continue
+        sns.lineplot(
+            data=df,
+            x="Episode",
+            y="Rate",
+            errorbar=("ci", 95),
+            ax=ax,
+            label=name,
+        )
         plotted = True
 
     if not plotted:
