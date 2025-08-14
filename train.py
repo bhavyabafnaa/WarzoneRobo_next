@@ -69,12 +69,26 @@ NAME_MAP = {
 
 
 def build_main_table(df_train: pd.DataFrame) -> pd.DataFrame:
-    """Return the filtered main results table with selected metrics."""
+    """Return filtered table for ``MAIN_METHODS`` with key metrics and p-values."""
 
-    cols = ["Model", "Train Reward", "Success", "Train Cost", "Pr[Jc > d]"]
+    col_map = {
+        "Train Reward": "Reward (±CI)",
+        "Success": "Success (±CI)",
+        "Train Cost": "Avg Cost (±CI)",
+        "Pr[Jc > d]": "Violations % (±CI)",
+        "Adherence Rate": "Planner Adherence %",
+        "Mask Rate": "Masked %",
+        "Coverage": "Coverage",
+        "Reward p-value": "p_reward",
+        "Violation p-value": "p_violation",
+    }
+    cols = ["Model"] + list(col_map.values())
     if "Model" not in df_train.columns:
         return pd.DataFrame(columns=cols)
-    return df_train[df_train["Model"].isin(MAIN_METHODS)][cols].reset_index(drop=True)
+    table = df_train[df_train["Model"].isin(MAIN_METHODS)].copy()
+    table = table[["Model"] + list(col_map.keys())]
+    table = table.rename(columns=col_map)
+    return table.reset_index(drop=True)
 
 
 def mean_ci(values: list[float]) -> tuple[float, float]:
@@ -1553,25 +1567,39 @@ def run(args):
             flatten_metric(metrics["PPO Only"]["rewards"]))
         baseline_success = np.array(
             flatten_metric(metrics["PPO Only"]["success"]))
+        baseline_violations = np.array(metrics["PPO Only"]["violation_flags"])
 
         overall_reward_p = np.nan
         overall_success_p = np.nan
+        overall_violation_p = np.nan
         reward_posthoc: dict[str, float] = {}
         success_posthoc: dict[str, float] = {}
+        violation_posthoc: dict[str, float] = {}
         if args.stat_test == "anova":
             reward_groups = []
             success_groups = []
+            violation_groups = []
             for data in metrics.values():
                 rewards_flat = flatten_metric(data["rewards"])
                 success_flat = flatten_metric(data["success"])
-                if len(rewards_flat) == len(baseline_rewards) and rewards_flat:
+                violations = data["violation_flags"]
+                if (
+                    len(rewards_flat) == len(baseline_rewards)
+                    and rewards_flat
+                    and len(violations) == len(baseline_violations)
+                ):
                     reward_groups.append(rewards_flat)
                     success_groups.append(success_flat)
+                    violation_groups.append(violations)
             if len(reward_groups) >= 3:
                 overall_reward_p = anova_oneway(reward_groups, use_var="unequal").pvalue
                 overall_success_p = anova_oneway(success_groups, use_var="unequal").pvalue
+                overall_violation_p = anova_oneway(
+                    violation_groups, use_var="unequal"
+                ).pvalue
                 print("Welch ANOVA reward p-value:", overall_reward_p)
                 print("Welch ANOVA success p-value:", overall_success_p)
+                print("Welch ANOVA violation p-value:", overall_violation_p)
                 if overall_reward_p < 0.05:
                     df_r = []
                     for g_name, data in metrics.items():
@@ -1598,31 +1626,56 @@ def run(args):
                             success_posthoc[row["B"]] = row["pval"]
                         elif row["B"] == "PPO Only":
                             success_posthoc[row["A"]] = row["pval"]
+                if overall_violation_p < 0.05:
+                    df_v = []
+                    for g_name, data in metrics.items():
+                        for val in data["violation_flags"]:
+                            df_v.append({"group": g_name, "value": val})
+                    df_v = pd.DataFrame(df_v)
+                    gh_v = pg.pairwise_gameshowell(dv="value", between="group", data=df_v)
+                    print("Games-Howell post-hoc violations:\n", gh_v)
+                    for _, row in gh_v.iterrows():
+                        if row["A"] == "PPO Only":
+                            violation_posthoc[row["B"]] = row["pval"]
+                        elif row["B"] == "PPO Only":
+                            violation_posthoc[row["A"]] = row["pval"]
         elif args.stat_test == "friedman":
             reward_groups = []
             success_groups = []
+            violation_groups = []
             for data in metrics.values():
                 rewards_flat = flatten_metric(data["rewards"])
                 success_flat = flatten_metric(data["success"])
-                if len(rewards_flat) == len(baseline_rewards) and rewards_flat:
+                violations = data["violation_flags"]
+                if (
+                    len(rewards_flat) == len(baseline_rewards)
+                    and rewards_flat
+                    and len(violations) == len(baseline_violations)
+                ):
                     reward_groups.append(rewards_flat)
                     success_groups.append(success_flat)
+                    violation_groups.append(violations)
             if len(reward_groups) >= 3:
                 overall_reward_p = friedmanchisquare(*reward_groups).pvalue
                 overall_success_p = friedmanchisquare(*success_groups).pvalue
+                overall_violation_p = friedmanchisquare(*violation_groups).pvalue
                 print("Friedman test reward p-value:", overall_reward_p)
                 print("Friedman test success p-value:", overall_success_p)
+                print("Friedman test violation p-value:", overall_violation_p)
 
         results = []
         reward_ps: list[float] = []
         reward_idx: list[int] = []
         success_ps: list[float] = []
         success_idx: list[int] = []
+        violation_ps: list[float] = []
+        violation_idx: list[int] = []
         for name, data in metrics.items():
             if args.stat_test in {"anova", "friedman"}:
                 if name == "PPO Only":
                     p_reward = overall_reward_p
                     p_success = overall_success_p
+                    p_violation = overall_violation_p
                     reward_effect = np.nan
                     success_effect = np.nan
                 else:
@@ -1634,6 +1687,10 @@ def run(args):
                         p_success = success_posthoc.get(name, np.nan)
                     else:
                         p_success = np.nan
+                    if args.stat_test == "anova" and overall_violation_p < 0.05:
+                        p_violation = violation_posthoc.get(name, np.nan)
+                    else:
+                        p_violation = np.nan
                     reward_effect = compute_cohens_d(
                         baseline_rewards, flatten_metric(data["rewards"])
                     )
@@ -1643,6 +1700,7 @@ def run(args):
             elif name == "PPO Only":
                 p_reward = np.nan
                 p_success = np.nan
+                p_violation = np.nan
                 reward_effect = np.nan
                 success_effect = np.nan
             else:
@@ -1650,9 +1708,12 @@ def run(args):
                     metrics["PPO Only"]["rewards"], data["rewards"])
                 base_succ, meth_succ = get_paired_arrays(
                     metrics["PPO Only"]["success"], data["success"])
+                base_viol = np.asarray(metrics["PPO Only"]["violation_flags"])
+                meth_viol = np.asarray(data["violation_flags"])
                 if args.stat_test == "paired":
                     p_reward = ttest_rel(base_arr, meth_arr).pvalue
                     p_success = ttest_rel(base_succ, meth_succ).pvalue
+                    p_violation = ttest_rel(base_viol, meth_viol).pvalue
                     reward_effect = compute_cohens_d(base_arr, meth_arr, paired=True)
                     success_effect = compute_cohens_d(base_succ, meth_succ, paired=True)
                 elif args.stat_test == "welch":
@@ -1663,6 +1724,9 @@ def run(args):
                     ).pvalue
                     p_success = ttest_ind(
                         baseline_success, meth_success, equal_var=False
+                    ).pvalue
+                    p_violation = ttest_ind(
+                        baseline_violations, meth_viol, equal_var=False
                     ).pvalue
                     reward_effect = compute_cohens_d(
                         baseline_rewards, meth_rewards
@@ -1678,6 +1742,11 @@ def run(args):
                     ).pvalue
                     p_success = mannwhitneyu(
                         baseline_success, meth_success, alternative="two-sided"
+                    ).pvalue
+                    p_violation = mannwhitneyu(
+                        baseline_violations,
+                        meth_viol,
+                        alternative="two-sided",
                     ).pvalue
                     reward_effect = compute_cohens_d(
                         baseline_rewards, meth_rewards
@@ -1727,10 +1796,12 @@ def run(args):
                     "First Violation Episode": fve_str,
                     "Reward p-value": p_reward,
                     "Success p-value": p_success,
+                    "Violation p-value": p_violation,
                     "Reward effect size": reward_effect,
                     "Success effect size": success_effect,
                     "Reward p-adj": np.nan,
                     "Success p-adj": np.nan,
+                    "Violation p-adj": np.nan,
                 }
             )
             if name != "PPO Only" and not np.isnan(p_reward):
@@ -1739,6 +1810,9 @@ def run(args):
             if name != "PPO Only" and not np.isnan(p_success):
                 success_ps.append(p_success)
                 success_idx.append(len(results) - 1)
+            if name != "PPO Only" and not np.isnan(p_violation):
+                violation_ps.append(p_violation)
+                violation_idx.append(len(results) - 1)
 
         bench_results = []
         for name, vals in bench.items():
@@ -1760,6 +1834,10 @@ def run(args):
             _, padj, _, _ = multipletests(success_ps, method="holm")
             for i, adj in zip(success_idx, padj):
                 results[i]["Success p-adj"] = adj
+        if violation_ps:
+            _, padj, _, _ = multipletests(violation_ps, method="holm")
+            for i, adj in zip(violation_idx, padj):
+                results[i]["Violation p-adj"] = adj
         pareto_rows = []
         for name, data in metrics.items():
             if data["rewards"] and data["episode_costs"]:
@@ -1793,7 +1871,7 @@ def run(args):
     df_main = build_main_table(df_train)
     if not df_main.empty:
         generate_results_table(
-            df_main, os.path.join(result_dir, "main_table.html")
+            df_main, os.path.join(result_dir, "ablation_table.html")
         )
     if all_bench:
         df_bench = pd.DataFrame(all_bench)

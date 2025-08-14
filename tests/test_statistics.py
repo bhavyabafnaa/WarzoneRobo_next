@@ -61,6 +61,11 @@ def test_main_results_table(tmp_path):
             "Success": "1.00 ± 0.00",
             "Train Cost": "1.00 ± 0.00",
             "Pr[Jc > d]": "0.00 ± 0.00",
+            "Adherence Rate": "1.00 ± 0.00",
+            "Mask Rate": "0.00 ± 0.00",
+            "Coverage": "1.00 ± 0.00",
+            "Reward p-value": 0.05,
+            "Violation p-value": 0.10,
         }
         for name in raw_names
     ]
@@ -71,10 +76,15 @@ def test_main_results_table(tmp_path):
 
     assert list(df_main.columns) == [
         "Model",
-        "Train Reward",
-        "Success",
-        "Train Cost",
-        "Pr[Jc > d]",
+        "Reward (±CI)",
+        "Success (±CI)",
+        "Avg Cost (±CI)",
+        "Violations % (±CI)",
+        "Planner Adherence %",
+        "Masked %",
+        "Coverage",
+        "p_reward",
+        "p_violation",
     ]
     assert len(df_main) == len(MAIN_METHODS)
 
