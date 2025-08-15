@@ -58,6 +58,7 @@ def test_main_results_table(tmp_path):
         {
             "Model": name,
             "Train Reward": "1.00 ± 0.00",
+            "Reward AUC": "1.00 ± 0.00",
             "Success": "1.00 ± 0.00",
             "Train Cost": "1.00 ± 0.00",
             "Pr[Jc > d]": "0.00 ± 0.00",
@@ -77,6 +78,7 @@ def test_main_results_table(tmp_path):
     assert list(df_main.columns) == [
         "Model",
         "Reward (±CI)",
+        "Reward AUC (±CI)",
         "Success (±CI)",
         "Avg Cost (±CI)",
         "Violations % (±CI)",
@@ -91,6 +93,9 @@ def test_main_results_table(tmp_path):
     output_path = tmp_path / "main_table.html"
     generate_results_table(df_main, str(output_path))
     assert output_path.exists()
+    csv_path = tmp_path / "main_table.csv"
+    df_out = pd.read_csv(csv_path)
+    assert "Reward AUC (±CI)" in df_out.columns
 
 
 def test_violation_effect_size_column(tmp_path):

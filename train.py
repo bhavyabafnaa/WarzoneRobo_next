@@ -76,6 +76,7 @@ def build_main_table(df_train: pd.DataFrame) -> pd.DataFrame:
 
     col_map = {
         "Train Reward": "Reward (±CI)",
+        "Reward AUC": "Reward AUC (±CI)",
         "Success": "Success (±CI)",
         "Train Cost": "Avg Cost (±CI)",
         "Pr[Jc > d]": "Violations % (±CI)",
@@ -347,6 +348,19 @@ def flatten_metric(metric_dict: dict[int, list[float]]) -> list[float]:
     for vals in metric_dict.values():
         values.extend(vals)
     return values
+
+
+def compute_auc_reward(reward_log: list[float]) -> float:
+    """Return area under the reward curve across episodes.
+
+    Uses the trapezoidal rule over episode indices. An empty ``reward_log``
+    yields ``0.0``.
+    """
+
+    if not reward_log:
+        return 0.0
+    episodes = np.arange(len(reward_log))
+    return float(np.trapz(reward_log, episodes))
 
 
 def parse_args():
@@ -695,6 +709,7 @@ def run(args):
                 "steps_per_sec": [],
                 "wall_time": [],
                 "lambda_vals": [],
+                "auc_reward": [],
             },
             "PPO + ICM": {
                 "rewards": {},
@@ -712,6 +727,7 @@ def run(args):
                 "steps_per_sec": [],
                 "wall_time": [],
                 "lambda_vals": [],
+                "auc_reward": [],
             },
             "PPO + ICM + Planner": {
                 "rewards": {},
@@ -729,6 +745,7 @@ def run(args):
                 "steps_per_sec": [],
                 "wall_time": [],
                 "lambda_vals": [],
+                "auc_reward": [],
             },
             "PPO + count": {
                 "rewards": {},
@@ -746,6 +763,7 @@ def run(args):
                 "steps_per_sec": [],
                 "wall_time": [],
                 "lambda_vals": [],
+                "auc_reward": [],
             },
             "PPO + RND": {
                 "rewards": {},
@@ -763,6 +781,7 @@ def run(args):
                 "steps_per_sec": [],
                 "wall_time": [],
                 "lambda_vals": [],
+                "auc_reward": [],
             },
             "PPO + PC": {
                 "rewards": {},
@@ -780,6 +799,7 @@ def run(args):
                 "steps_per_sec": [],
                 "wall_time": [],
                 "lambda_vals": [],
+                "auc_reward": [],
             },
             "LPPO": {
                 "rewards": {},
@@ -797,6 +817,7 @@ def run(args):
                 "steps_per_sec": [],
                 "wall_time": [],
                 "lambda_vals": [],
+                "auc_reward": [],
             },
             "Shielded-PPO": {
                 "rewards": {},
@@ -814,6 +835,7 @@ def run(args):
                 "steps_per_sec": [],
                 "wall_time": [],
                 "lambda_vals": [],
+                "auc_reward": [],
             },
             "Planner-only": {
                 "rewards": {},
@@ -831,6 +853,7 @@ def run(args):
                 "steps_per_sec": [],
                 "wall_time": [],
                 "lambda_vals": [],
+                "auc_reward": [],
             },
             "Planner-Subgoal PPO": {
                 "rewards": {},
@@ -848,6 +871,7 @@ def run(args):
                 "steps_per_sec": [],
                 "wall_time": [],
                 "lambda_vals": [],
+                "auc_reward": [],
             },
             "Dyna-PPO(1)": {
                 "rewards": {},
@@ -865,6 +889,7 @@ def run(args):
                 "steps_per_sec": [],
                 "wall_time": [],
                 "lambda_vals": [],
+                "auc_reward": [],
             },
         }
         bench = {
@@ -1049,6 +1074,9 @@ def run(args):
                 gamma=args.gamma,
                 gae_lambda=args.gae_lambda,
             )
+            metrics["PPO Only"]["auc_reward"].append(
+                compute_auc_reward(rewards_ppo_only)
+            )
             metrics["PPO Only"]["planner_pct"].append(
                 float(np.mean(planner_rate_ppo_only)))
             metrics["PPO Only"]["mask_rate"].append(
@@ -1167,6 +1195,9 @@ def run(args):
                 gamma=args.gamma,
                 gae_lambda=args.gae_lambda,
             )
+            metrics["LPPO"]["auc_reward"].append(
+                compute_auc_reward(rewards_lppo)
+            )
             metrics["LPPO"]["planner_pct"].append(float(np.mean(planner_rate_lppo)))
             metrics["LPPO"]["mask_rate"].append(float(np.mean(mask_rates_lppo)))
             metrics["LPPO"]["adherence_rate"].append(float(np.mean(adherence_rates_lppo)))
@@ -1268,6 +1299,9 @@ def run(args):
                 clip_epsilon=args.clip_epsilon,
                 gamma=args.gamma,
                 gae_lambda=args.gae_lambda,
+            )
+            metrics["Shielded-PPO"]["auc_reward"].append(
+                compute_auc_reward(rewards_shield)
             )
             metrics["Shielded-PPO"]["planner_pct"].append(float(np.mean(planner_rate_shield)))
             metrics["Shielded-PPO"]["mask_rate"].append(float(np.mean(mask_rates_shield)))
@@ -1374,6 +1408,9 @@ def run(args):
             metrics["Planner-only"]["episode_time"].append(float(np.mean(episode_times_po)))
             metrics["Planner-only"]["steps_per_sec"].append(float(np.mean(steps_per_sec_po)))
             metrics["Planner-only"]["wall_time"].append(float(wall_clock_po[-1]))
+            metrics["Planner-only"]["auc_reward"].append(
+                compute_auc_reward(rewards_po)
+            )
             curve_logs["Planner-only"]["rewards"].append(rewards_po)
             curve_logs["Planner-only"]["success"].append(success_po)
             curve_logs["Planner-only"]["episode_costs"].append(episode_costs_po)
@@ -1441,6 +1478,9 @@ def run(args):
                 clip_epsilon=args.clip_epsilon,
                 gamma=args.gamma,
                 gae_lambda=args.gae_lambda,
+            )
+            metrics["Planner-Subgoal PPO"]["auc_reward"].append(
+                compute_auc_reward(rewards_subgoal)
             )
             metrics["Planner-Subgoal PPO"]["planner_pct"].append(float(np.mean(planner_rate_subgoal)))
             metrics["Planner-Subgoal PPO"]["mask_rate"].append(float(np.mean(mask_rates_subgoal)))
@@ -1543,6 +1583,9 @@ def run(args):
                 clip_epsilon=args.clip_epsilon,
                 gamma=args.gamma,
                 gae_lambda=args.gae_lambda,
+            )
+            metrics["Dyna-PPO(1)"]["auc_reward"].append(
+                compute_auc_reward(rewards_dyna)
             )
             metrics["Dyna-PPO(1)"]["planner_pct"].append(float(np.mean(planner_rate_dyna)))
             metrics["Dyna-PPO(1)"]["mask_rate"].append(float(np.mean(mask_rates_dyna)))
@@ -1647,6 +1690,9 @@ def run(args):
                     clip_epsilon=args.clip_epsilon,
                     gamma=args.gamma,
                     gae_lambda=args.gae_lambda,
+                )
+                metrics["PPO + ICM"]["auc_reward"].append(
+                    compute_auc_reward(rewards_ppo_icm)
                 )
                 metrics["PPO + ICM"]["planner_pct"].append(
                     float(np.mean(planner_rate_icm)))
@@ -1769,6 +1815,9 @@ def run(args):
                 gamma=args.gamma,
                 gae_lambda=args.gae_lambda,
             )
+            metrics["PPO + PC"]["auc_reward"].append(
+                compute_auc_reward(rewards_pc)
+            )
             metrics["PPO + PC"]["planner_pct"].append(
                 float(np.mean(planner_rate_pc)))
             metrics["PPO + PC"]["mask_rate"].append(
@@ -1888,6 +1937,9 @@ def run(args):
                     clip_epsilon=args.clip_epsilon,
                     gamma=args.gamma,
                     gae_lambda=args.gae_lambda,
+                )
+                metrics["PPO + ICM + Planner"]["auc_reward"].append(
+                    compute_auc_reward(rewards_ppo_icm_plan)
                 )
                 metrics["PPO + ICM + Planner"]["planner_pct"].append(
                     float(np.mean(planner_rate_plan)))
@@ -2027,6 +2079,9 @@ def run(args):
                 gamma=args.gamma,
                 gae_lambda=args.gae_lambda,
             )
+            metrics["PPO + count"]["auc_reward"].append(
+                compute_auc_reward(rewards_ppo_count)
+            )
             metrics["PPO + count"]["planner_pct"].append(
                 float(np.mean(planner_rate_count)))
             metrics["PPO + count"]["mask_rate"].append(
@@ -2148,6 +2203,9 @@ def run(args):
                     clip_epsilon=args.clip_epsilon,
                     gamma=args.gamma,
                     gae_lambda=args.gae_lambda,
+                )
+                metrics["PPO + RND"]["auc_reward"].append(
+                    compute_auc_reward(rewards_ppo_rnd)
                 )
                 metrics["PPO + RND"]["planner_pct"].append(
                     float(np.mean(planner_rate_rnd)))
@@ -2468,6 +2526,7 @@ def run(args):
                 check_reward_difference_ci(
                     flatten_metric(metrics["PPO Only"]["rewards"]),
                     flatten_metric(data["rewards"]))
+            auc_reward = format_mean_ci(data["auc_reward"])
             success = format_bootstrap_ci(flatten_metric(data["success"]))
             planner = format_mean_ci(data["planner_pct"], scale=100)
             mask_rate = format_mean_ci(data["mask_rate"], scale=100)
@@ -2489,6 +2548,7 @@ def run(args):
                     "Setting": setting["name"],
                     "Model": name,
                     "Train Reward": reward,
+                    "Reward AUC": auc_reward,
                     "Success": success,
                     "Planner Usage %": planner,
                     "Mask Rate": mask_rate,
