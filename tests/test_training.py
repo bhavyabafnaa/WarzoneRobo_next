@@ -127,8 +127,8 @@ def test_training_one_episode_metrics(tmp_path, budget):
         steps_per_sec,
         wall_clock,
         beta_log,
+        lambda_log,
     ) = metrics
-    lambda_log = [0.0] * len(rewards)
     assert len(rewards) == 1
     assert len(coverage_log) == 1
     assert len(episode_costs) == 1
@@ -136,8 +136,8 @@ def test_training_one_episode_metrics(tmp_path, budget):
     assert len(episode_times) == 1
     assert len(steps_per_sec) == 1
     assert len(wall_clock) == 1
-    assert len(lambda_log) == 1
     assert len(beta_log) == 1
+    assert len(lambda_log) == 1
     assert isinstance(first_violation_episode, int)
 
 
@@ -214,8 +214,9 @@ def test_beta_schedule_consistency():
         lambda_cost=0.0,
         imagination_k=0,
     )
-    rewards1, *_, beta_log1 = metrics1
+    rewards1, *_, beta_log1, lambda_log1 = metrics1
     assert len(rewards1) == 3
+    assert len(lambda_log1) == 3
 
     env.reset()
     policy2 = PPOPolicy(input_dim, action_dim)
@@ -238,8 +239,9 @@ def test_beta_schedule_consistency():
         lambda_cost=0.0,
         imagination_k=0,
     )
-    rewards2, *_, beta_log2 = metrics2
+    rewards2, *_, beta_log2, lambda_log2 = metrics2
     assert len(rewards2) == 3
+    assert len(lambda_log2) == 3
 
     assert beta_log1 == schedule
     assert beta_log2 == schedule
