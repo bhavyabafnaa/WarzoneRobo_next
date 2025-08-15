@@ -104,6 +104,7 @@ def train_agent(
     kappa: float = 4.0,
     H: int = 8,
     waypoint_bonus: float = 0.05,
+    planner_bonus_decay: float = 1.0,
     imagination_k: int = 10,
     world_model_lr: float = 1e-3,
     allow_early_stop: bool = False,
@@ -238,8 +239,10 @@ def train_agent(
         ppo_decisions = 0
         intrinsic_log = 0
         visit_count = np.zeros((env.grid_size, env.grid_size))
-        planner_bonus = max(0.1, initial_bonus *
-                            (1 - (episode / num_episodes)))
+        planner_bonus = max(
+            0.1,
+            initial_bonus * (1 - planner_bonus_decay * (episode / num_episodes)),
+        )
         mask_count = 0
         min_dist = float('inf')
         adherence_count = 0

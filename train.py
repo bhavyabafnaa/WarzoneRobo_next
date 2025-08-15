@@ -363,8 +363,14 @@ def compute_auc_reward(reward_log: list[float]) -> float:
     return float(np.trapz(reward_log, episodes))
 
 
-def parse_args():
+def parse_args(arg_list: list[str] | None = None):
     """Parse command line arguments with optional YAML config defaults.
+
+    Parameters
+    ----------
+    arg_list : list[str] | None
+        Optional list of arguments to parse. Useful for tests; when ``None``
+        (the default) ``sys.argv`` is used.
 
     The ``--config`` file is parsed first and any keys inside will set the
     parser defaults. Command line flags always take precedence, allowing quick
@@ -387,8 +393,20 @@ def parse_args():
     )
     parser.add_argument("--grid_size", type=int, default=12)
     parser.add_argument("--num_episodes", type=int, default=500)
-    parser.add_argument("--cost_weight", type=float, default=2.0)
-    parser.add_argument("--risk_weight", type=float, default=3.0)
+    parser.add_argument(
+        "--cost_weight",
+        type=float,
+        nargs="+",
+        default=[2.0],
+        help="Planner cost weight(s) for sweeps",
+    )
+    parser.add_argument(
+        "--risk_weight",
+        type=float,
+        nargs="+",
+        default=[3.0],
+        help="Planner risk weight(s) for sweeps",
+    )
     parser.add_argument("--revisit_penalty", type=float, default=1.0)
     parser.add_argument(
         "--lambda_cost",
@@ -421,15 +439,17 @@ def parse_args():
     parser.add_argument(
         "--tau",
         type=float,
-        default=0.7,
-        help="Risk threshold for masking unsafe actions",
+        nargs="+",
+        default=[0.7],
+        help="Risk threshold(s) for masking unsafe actions",
     )
     parser.add_argument(
         "--kappa",
         type=float,
+        nargs="+",
         choices=[2, 4],
-        default=4.0,
-        help="Soft risk penalty weight applied to policy logits",
+        default=[4.0],
+        help="Soft risk penalty weight(s) applied to policy logits",
     )
     parser.add_argument(
         "--disable-risk-penalty",
@@ -439,14 +459,23 @@ def parse_args():
     parser.add_argument(
         "--initial-beta",
         type=float,
-        default=0.1,
-        help="Starting weight for intrinsic reward",
+        nargs="+",
+        default=[0.1],
+        help="Starting weight(s) for intrinsic reward",
     )
     parser.add_argument(
         "--final-beta",
         type=float,
-        default=0.01,
-        help="Final beta value after decay",
+        nargs="+",
+        default=[0.01],
+        help="Final beta value(s) after decay",
+    )
+    parser.add_argument(
+        "--planner-bonus-decay",
+        type=float,
+        nargs="+",
+        default=[1.0],
+        help="Multiplier(s) for planner bonus decay rate",
     )
     parser.add_argument(
         "--dynamic_risk",
@@ -562,7 +591,7 @@ def parse_args():
     # Parse once to read the config file path and load defaults from YAML. We
     # intentionally parse without removing any of the original command line
     # arguments so they can still override the config on the second pass.
-    config_args, _ = parser.parse_known_args()
+    config_args, _ = parser.parse_known_args(arg_list)
     if config_args.config and os.path.exists(config_args.config):
         with open(config_args.config, "r") as f:
             cfg = yaml.safe_load(f) or {}
@@ -570,7 +599,20 @@ def parse_args():
 
     # Final parse with config defaults applied; command line flags take
     # precedence over YAML settings.
-    return parser.parse_args()
+    args = parser.parse_args(arg_list)
+    for name in [
+        "cost_weight",
+        "risk_weight",
+        "tau",
+        "kappa",
+        "initial_beta",
+        "final_beta",
+        "planner_bonus_decay",
+    ]:
+        val = getattr(args, name)
+        if isinstance(val, list) and len(val) == 1:
+            setattr(args, name, val[0])
+    return args
 def run(args):
     budget_str = f"budget_{args.cost_limit:.2f}"
     video_dir = os.path.join("videos", budget_str)
@@ -1068,6 +1110,7 @@ def run(args):
                 use_risk_penalty=not args.disable_risk_penalty,
                 H=args.H,
                 waypoint_bonus=args.waypoint_bonus,
+                planner_bonus_decay=args.planner_bonus_decay,
                 imagination_k=0,
                 world_model_lr=args.world_model_lr,
                 clip_epsilon=args.clip_epsilon,
@@ -1189,6 +1232,7 @@ def run(args):
                 use_risk_penalty=not args.disable_risk_penalty,
                 H=args.H,
                 waypoint_bonus=args.waypoint_bonus,
+                planner_bonus_decay=args.planner_bonus_decay,
                 imagination_k=0,
                 world_model_lr=args.world_model_lr,
                 clip_epsilon=args.clip_epsilon,
@@ -1294,6 +1338,7 @@ def run(args):
                 use_risk_penalty=not args.disable_risk_penalty,
                 H=args.H,
                 waypoint_bonus=0.0,
+                planner_bonus_decay=args.planner_bonus_decay,
                 imagination_k=0,
                 world_model_lr=args.world_model_lr,
                 clip_epsilon=args.clip_epsilon,
@@ -1473,6 +1518,7 @@ def run(args):
                 use_risk_penalty=not args.disable_risk_penalty,
                 H=args.H,
                 waypoint_bonus=args.waypoint_bonus,
+                planner_bonus_decay=args.planner_bonus_decay,
                 imagination_k=0,
                 world_model_lr=args.world_model_lr,
                 clip_epsilon=args.clip_epsilon,
@@ -1578,6 +1624,7 @@ def run(args):
                 use_risk_penalty=not args.disable_risk_penalty,
                 H=args.H,
                 waypoint_bonus=0.0,
+                planner_bonus_decay=args.planner_bonus_decay,
                 imagination_k=args.K,
                 world_model_lr=args.world_model_lr,
                 clip_epsilon=args.clip_epsilon,
@@ -1685,6 +1732,7 @@ def run(args):
                     use_risk_penalty=not args.disable_risk_penalty,
                     H=args.H,
                     waypoint_bonus=args.waypoint_bonus,
+                    planner_bonus_decay=args.planner_bonus_decay,
                     imagination_k=0,
                     world_model_lr=args.world_model_lr,
                     clip_epsilon=args.clip_epsilon,
@@ -1809,6 +1857,7 @@ def run(args):
                 use_risk_penalty=not args.disable_risk_penalty,
                 H=args.H,
                 waypoint_bonus=args.waypoint_bonus,
+                planner_bonus_decay=args.planner_bonus_decay,
                 imagination_k=0,
                 world_model_lr=args.world_model_lr,
                 clip_epsilon=args.clip_epsilon,
@@ -1932,6 +1981,7 @@ def run(args):
                     use_risk_penalty=not args.disable_risk_penalty,
                     H=args.H,
                     waypoint_bonus=args.waypoint_bonus,
+                    planner_bonus_decay=args.planner_bonus_decay,
                     imagination_k=0,
                     world_model_lr=args.world_model_lr,
                     clip_epsilon=args.clip_epsilon,
@@ -2073,6 +2123,7 @@ def run(args):
                 use_risk_penalty=not args.disable_risk_penalty,
                 H=args.H,
                 waypoint_bonus=args.waypoint_bonus,
+                planner_bonus_decay=args.planner_bonus_decay,
                 imagination_k=0,
                 world_model_lr=args.world_model_lr,
                 clip_epsilon=args.clip_epsilon,
@@ -2198,6 +2249,7 @@ def run(args):
                     use_risk_penalty=not args.disable_risk_penalty,
                     H=args.H,
                     waypoint_bonus=args.waypoint_bonus,
+                    planner_bonus_decay=args.planner_bonus_decay,
                     imagination_k=0,
                     world_model_lr=args.world_model_lr,
                     clip_epsilon=args.clip_epsilon,
