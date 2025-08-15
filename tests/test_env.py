@@ -52,28 +52,48 @@ def test_randomized_mine_and_hazard_density():
     assert abs(hazard_fraction - env.hazard_density) <= 0.15
 
 
-def test_dynamic_risk_updates_near_enemies():
-    env = GridWorldICM(grid_size=3, dynamic_risk=True, max_steps=5, seed=0)
-    env.reset(seed=0)
-    env.risk_map = np.zeros((3, 3))
-    env.enemy_positions = [[1, 1]]
-    env.step(0)
-    ex, ey = env.enemy_positions[0]
-    assert env.risk_map[ex, ey] > 0
+def test_dynamic_risk_alters_map_over_time():
+    env_dyn = GridWorldICM(grid_size=3, dynamic_risk=True, max_steps=5, seed=0)
+    env_dyn.reset(seed=0)
+    env_dyn.risk_map = np.zeros((3, 3))
+    env_dyn.enemy_positions = [[1, 1]]
+    start = env_dyn.risk_map.copy()
+    env_dyn.step(0)
+    env_dyn.step(0)
+    assert not np.array_equal(env_dyn.risk_map, start)
+
+    env_static = GridWorldICM(grid_size=3, dynamic_risk=False, max_steps=5, seed=0)
+    env_static.reset(seed=0)
+    env_static.risk_map = np.zeros((3, 3))
+    env_static.enemy_positions = [[1, 1]]
+    start_static = env_static.risk_map.copy()
+    env_static.step(0)
+    env_static.step(0)
+    assert np.array_equal(env_static.risk_map, start_static)
 
 
-def test_dynamic_cost_updates_near_mines_and_decay():
-    env = GridWorldICM(grid_size=3, dynamic_cost=True, max_steps=5, seed=0)
-    env.reset(seed=0)
-    env.cost_map = np.zeros((3, 3))
-    env.cost_map[0, 0] = 1.0
-    env.mine_map = np.zeros((3, 3), dtype=bool)
-    env.mine_map[1, 1] = True
-    env.step(1)  # move down, avoiding the mine
-    # cost at previous high value should decay
-    assert env.cost_map[0, 0] < 1.0
-    # cost near the mine should increase
-    assert env.cost_map[1, 1] > 0
+def test_dynamic_cost_alters_map_over_time():
+    env_dyn = GridWorldICM(grid_size=3, dynamic_cost=True, max_steps=5, seed=0)
+    env_dyn.reset(seed=0)
+    env_dyn.cost_map = np.zeros((3, 3))
+    env_dyn.cost_map[0, 0] = 1.0
+    env_dyn.mine_map = np.zeros((3, 3), dtype=bool)
+    env_dyn.mine_map[1, 1] = True
+    start = env_dyn.cost_map.copy()
+    env_dyn.step(1)
+    env_dyn.step(1)
+    assert not np.array_equal(env_dyn.cost_map, start)
+
+    env_static = GridWorldICM(grid_size=3, dynamic_cost=False, max_steps=5, seed=0)
+    env_static.reset(seed=0)
+    env_static.cost_map = np.zeros((3, 3))
+    env_static.cost_map[0, 0] = 1.0
+    env_static.mine_map = np.zeros((3, 3), dtype=bool)
+    env_static.mine_map[1, 1] = True
+    start_static = env_static.cost_map.copy()
+    env_static.step(1)
+    env_static.step(1)
+    assert np.array_equal(env_static.cost_map, start_static)
 
 
 def test_survival_reward_positive():

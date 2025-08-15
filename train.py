@@ -478,13 +478,17 @@ def parse_args(arg_list: list[str] | None = None):
         help="Multiplier(s) for planner bonus decay rate",
     )
     parser.add_argument(
-        "--dynamic_risk",
+        "--dynamic-risk",
+        dest="dynamic_risk",
         action="store_true",
-        help="Enable dynamic risk in env")
+        help="Enable dynamic risk in env",
+    )
     parser.add_argument(
-        "--dynamic_cost",
+        "--dynamic-cost",
+        dest="dynamic_cost",
         action="store_true",
-        help="Enable dynamic cost in env")
+        help="Enable dynamic cost in env",
+    )
     parser.add_argument(
         "--add_noise",
         action="store_true",
@@ -615,13 +619,17 @@ def parse_args(arg_list: list[str] | None = None):
     return args
 def run(args):
     budget_str = f"budget_{args.cost_limit:.2f}"
-    video_dir = os.path.join("videos", budget_str)
-    result_dir = os.path.join("results", budget_str)
-    figure_dir = os.path.join("figures", budget_str)
-    checkpoint_dir = os.path.join("checkpoints", budget_str)
+    dynamics_str = (
+        f"risk_{'on' if args.dynamic_risk else 'off'}_"
+        f"cost_{'on' if args.dynamic_cost else 'off'}"
+    )
+    video_dir = os.path.join("videos", budget_str, dynamics_str)
+    result_dir = os.path.join("results", budget_str, dynamics_str)
+    figure_dir = os.path.join("figures", budget_str, dynamics_str)
+    checkpoint_dir = os.path.join("checkpoints", budget_str, dynamics_str)
     plot_dir = None
     if args.plot_dir:
-        plot_dir = os.path.join(args.plot_dir, budget_str)
+        plot_dir = os.path.join(args.plot_dir, budget_str, dynamics_str)
         os.makedirs(plot_dir, exist_ok=True)
     for d in [video_dir, result_dir, figure_dir, checkpoint_dir]:
         os.makedirs(d, exist_ok=True)
@@ -2717,6 +2725,10 @@ def run(args):
 if __name__ == "__main__":
     base_args = parse_args()
     for budget in [0.05, 0.10]:
-        args = argparse.Namespace(**vars(base_args))
-        args.cost_limit = budget
-        run(args)
+        for dyn_risk in [False, True]:
+            for dyn_cost in [False, True]:
+                args = argparse.Namespace(**vars(base_args))
+                args.cost_limit = budget
+                args.dynamic_risk = dyn_risk
+                args.dynamic_cost = dyn_cost
+                run(args)
