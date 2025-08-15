@@ -2394,7 +2394,7 @@ def run(args):
                     flatten_metric(data["rewards"]))
             success = format_bootstrap_ci(flatten_metric(data["success"]))
             planner = format_mean_ci(data["planner_pct"], scale=100)
-            mask_rate = format_mean_ci(data["mask_rate"])
+            mask_rate = format_mean_ci(data["mask_rate"], scale=100)
             adherence = format_mean_ci(data["adherence_rate"])
             coverage = format_mean_ci(data["coverage"])
             min_dist = format_mean_ci(data["min_dist"])

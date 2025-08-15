@@ -12,6 +12,7 @@ from train import (
     get_paired_arrays,
     compute_cohens_d,
     bootstrap_ci,
+    format_mean_ci,
 )
 from scipy.stats import ttest_rel
 from statsmodels.stats.multitest import multipletests
@@ -438,3 +439,8 @@ def test_bootstrap_ci_shrinkage():
     np.random.seed(0)
     _, ci_large = bootstrap_ci(large, n_resamples=1000)
     assert ci_large < ci_small
+
+
+def test_mask_rate_percentage_formatting():
+    formatted = format_mean_ci([0.1], scale=100)
+    assert formatted == "10.00 ± 0.00"
