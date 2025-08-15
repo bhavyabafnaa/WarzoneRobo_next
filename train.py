@@ -694,6 +694,7 @@ def run(args):
                 "episode_time": [],
                 "steps_per_sec": [],
                 "wall_time": [],
+                "lambda_vals": [],
             },
             "PPO + ICM": {
                 "rewards": {},
@@ -710,6 +711,7 @@ def run(args):
                 "episode_time": [],
                 "steps_per_sec": [],
                 "wall_time": [],
+                "lambda_vals": [],
             },
             "PPO + ICM + Planner": {
                 "rewards": {},
@@ -726,6 +728,7 @@ def run(args):
                 "episode_time": [],
                 "steps_per_sec": [],
                 "wall_time": [],
+                "lambda_vals": [],
             },
             "PPO + count": {
                 "rewards": {},
@@ -742,6 +745,7 @@ def run(args):
                 "episode_time": [],
                 "steps_per_sec": [],
                 "wall_time": [],
+                "lambda_vals": [],
             },
             "PPO + RND": {
                 "rewards": {},
@@ -758,6 +762,7 @@ def run(args):
                 "episode_time": [],
                 "steps_per_sec": [],
                 "wall_time": [],
+                "lambda_vals": [],
             },
             "PPO + PC": {
                 "rewards": {},
@@ -774,6 +779,7 @@ def run(args):
                 "episode_time": [],
                 "steps_per_sec": [],
                 "wall_time": [],
+                "lambda_vals": [],
             },
             "LPPO": {
                 "rewards": {},
@@ -790,6 +796,7 @@ def run(args):
                 "episode_time": [],
                 "steps_per_sec": [],
                 "wall_time": [],
+                "lambda_vals": [],
             },
             "Shielded-PPO": {
                 "rewards": {},
@@ -806,6 +813,7 @@ def run(args):
                 "episode_time": [],
                 "steps_per_sec": [],
                 "wall_time": [],
+                "lambda_vals": [],
             },
             "Planner-only": {
                 "rewards": {},
@@ -822,6 +830,7 @@ def run(args):
                 "episode_time": [],
                 "steps_per_sec": [],
                 "wall_time": [],
+                "lambda_vals": [],
             },
             "Planner-Subgoal PPO": {
                 "rewards": {},
@@ -838,6 +847,7 @@ def run(args):
                 "episode_time": [],
                 "steps_per_sec": [],
                 "wall_time": [],
+                "lambda_vals": [],
             },
             "Dyna-PPO(1)": {
                 "rewards": {},
@@ -854,6 +864,7 @@ def run(args):
                 "episode_time": [],
                 "steps_per_sec": [],
                 "wall_time": [],
+                "lambda_vals": [],
             },
         }
         bench = {
@@ -877,6 +888,7 @@ def run(args):
                 "success": [],
                 "episode_costs": [],
                 "violation_flags": [],
+                "lambda": [],
             },
             "PPO + ICM": {
                 "rewards": [],
@@ -884,6 +896,7 @@ def run(args):
                 "success": [],
                 "episode_costs": [],
                 "violation_flags": [],
+                "lambda": [],
             },
             "PPO + ICM + Planner": {
                 "rewards": [],
@@ -891,6 +904,7 @@ def run(args):
                 "success": [],
                 "episode_costs": [],
                 "violation_flags": [],
+                "lambda": [],
             },
             "PPO + count": {
                 "rewards": [],
@@ -898,6 +912,7 @@ def run(args):
                 "success": [],
                 "episode_costs": [],
                 "violation_flags": [],
+                "lambda": [],
             },
             "PPO + RND": {
                 "rewards": [],
@@ -905,6 +920,7 @@ def run(args):
                 "success": [],
                 "episode_costs": [],
                 "violation_flags": [],
+                "lambda": [],
             },
             "PPO + PC": {
                 "rewards": [],
@@ -912,6 +928,7 @@ def run(args):
                 "success": [],
                 "episode_costs": [],
                 "violation_flags": [],
+                "lambda": [],
             },
             "LPPO": {
                 "rewards": [],
@@ -919,6 +936,7 @@ def run(args):
                 "success": [],
                 "episode_costs": [],
                 "violation_flags": [],
+                "lambda": [],
             },
             "Shielded-PPO": {
                 "rewards": [],
@@ -926,6 +944,7 @@ def run(args):
                 "success": [],
                 "episode_costs": [],
                 "violation_flags": [],
+                "lambda": [],
             },
             "Planner-only": {
                 "rewards": [],
@@ -933,6 +952,7 @@ def run(args):
                 "success": [],
                 "episode_costs": [],
                 "violation_flags": [],
+                "lambda": [],
             },
             "Planner-Subgoal PPO": {
                 "rewards": [],
@@ -940,6 +960,7 @@ def run(args):
                 "success": [],
                 "episode_costs": [],
                 "violation_flags": [],
+                "lambda": [],
             },
             "Dyna-PPO(1)": {
                 "rewards": [],
@@ -947,6 +968,7 @@ def run(args):
                 "success": [],
                 "episode_costs": [],
                 "violation_flags": [],
+                "lambda": [],
             },
         }
 
@@ -992,6 +1014,8 @@ def run(args):
                 episode_times_ppo_only,
                 steps_per_sec_ppo_only,
                 wall_clock_times_ppo_only,
+                beta_log_ppo_only,
+                lambda_log_ppo_only,
             ) = train_agent(
                 env,
                 ppo_policy,
@@ -1050,6 +1074,7 @@ def run(args):
                 float(np.mean(steps_per_sec_ppo_only)))
             metrics["PPO Only"]["wall_time"].append(
                 float(wall_clock_times_ppo_only[-1]))
+            metrics["PPO Only"]["lambda_vals"].append(lambda_log_ppo_only)
             save_model(
                 ppo_policy,
                 os.path.join(
@@ -1061,6 +1086,7 @@ def run(args):
                 episode_costs_ppo_only)
             curve_logs["PPO Only"]["violation_flags"].append(
                 violation_flags_ppo_only)
+            curve_logs["PPO Only"]["lambda"].append(lambda_log_ppo_only)
             render_episode_video(
                 env,
                 ppo_policy,
@@ -1106,6 +1132,8 @@ def run(args):
                 episode_times_lppo,
                 steps_per_sec_lppo,
                 wall_clock_times_lppo,
+                beta_log_lppo,
+                lambda_log_lppo,
             ) = train_agent(
                 env,
                 lppo_policy,
@@ -1151,6 +1179,7 @@ def run(args):
             metrics["LPPO"]["episode_time"].append(float(np.mean(episode_times_lppo)))
             metrics["LPPO"]["steps_per_sec"].append(float(np.mean(steps_per_sec_lppo)))
             metrics["LPPO"]["wall_time"].append(float(wall_clock_times_lppo[-1]))
+            metrics["LPPO"]["lambda_vals"].append(lambda_log_lppo)
             save_model(
                 lppo_policy,
                 os.path.join(checkpoint_dir, f"lppo_{run_seed}.pt"),
@@ -1159,6 +1188,7 @@ def run(args):
             curve_logs["LPPO"]["success"].append(success_lppo)
             curve_logs["LPPO"]["episode_costs"].append(episode_costs_lppo)
             curve_logs["LPPO"]["violation_flags"].append(violation_flags_lppo)
+            curve_logs["LPPO"]["lambda"].append(lambda_log_lppo)
             render_episode_video(
                 env,
                 lppo_policy,
@@ -1204,6 +1234,8 @@ def run(args):
                 episode_times_shield,
                 steps_per_sec_shield,
                 wall_clock_times_shield,
+                beta_log_shield,
+                lambda_log_shield,
             ) = train_agent(
                 env,
                 shield_policy,
@@ -1249,6 +1281,7 @@ def run(args):
             metrics["Shielded-PPO"]["episode_time"].append(float(np.mean(episode_times_shield)))
             metrics["Shielded-PPO"]["steps_per_sec"].append(float(np.mean(steps_per_sec_shield)))
             metrics["Shielded-PPO"]["wall_time"].append(float(wall_clock_times_shield[-1]))
+            metrics["Shielded-PPO"]["lambda_vals"].append(lambda_log_shield)
             save_model(
                 shield_policy,
                 os.path.join(checkpoint_dir, f"shielded_ppo_{run_seed}.pt"),
@@ -1257,6 +1290,7 @@ def run(args):
             curve_logs["Shielded-PPO"]["success"].append(success_shield)
             curve_logs["Shielded-PPO"]["episode_costs"].append(episode_costs_shield)
             curve_logs["Shielded-PPO"]["violation_flags"].append(violation_flags_shield)
+            curve_logs["Shielded-PPO"]["lambda"].append(lambda_log_shield)
             render_episode_video(
                 env,
                 shield_policy,
@@ -1373,6 +1407,8 @@ def run(args):
                 episode_times_subgoal,
                 steps_per_sec_subgoal,
                 wall_clock_times_subgoal,
+                beta_log_subgoal,
+                lambda_log_subgoal,
             ) = train_agent(
                 env,
                 subgoal_policy,
@@ -1418,6 +1454,7 @@ def run(args):
             metrics["Planner-Subgoal PPO"]["episode_time"].append(float(np.mean(episode_times_subgoal)))
             metrics["Planner-Subgoal PPO"]["steps_per_sec"].append(float(np.mean(steps_per_sec_subgoal)))
             metrics["Planner-Subgoal PPO"]["wall_time"].append(float(wall_clock_times_subgoal[-1]))
+            metrics["Planner-Subgoal PPO"]["lambda_vals"].append(lambda_log_subgoal)
             save_model(
                 subgoal_policy,
                 os.path.join(checkpoint_dir, f"planner_subgoal_ppo_{run_seed}.pt"),
@@ -1426,6 +1463,7 @@ def run(args):
             curve_logs["Planner-Subgoal PPO"]["success"].append(success_subgoal)
             curve_logs["Planner-Subgoal PPO"]["episode_costs"].append(episode_costs_subgoal)
             curve_logs["Planner-Subgoal PPO"]["violation_flags"].append(violation_flags_subgoal)
+            curve_logs["Planner-Subgoal PPO"]["lambda"].append(lambda_log_subgoal)
             render_episode_video(
                 env,
                 subgoal_policy,
@@ -1471,6 +1509,8 @@ def run(args):
                 episode_times_dyna,
                 steps_per_sec_dyna,
                 wall_clock_times_dyna,
+                beta_log_dyna,
+                lambda_log_dyna,
             ) = train_agent(
                 env,
                 dyna_policy,
@@ -1516,6 +1556,7 @@ def run(args):
             metrics["Dyna-PPO(1)"]["episode_time"].append(float(np.mean(episode_times_dyna)))
             metrics["Dyna-PPO(1)"]["steps_per_sec"].append(float(np.mean(steps_per_sec_dyna)))
             metrics["Dyna-PPO(1)"]["wall_time"].append(float(wall_clock_times_dyna[-1]))
+            metrics["Dyna-PPO(1)"]["lambda_vals"].append(lambda_log_dyna)
             save_model(
                 dyna_policy,
                 os.path.join(checkpoint_dir, f"dyna_ppo1_{run_seed}.pt"),
@@ -1524,6 +1565,7 @@ def run(args):
             curve_logs["Dyna-PPO(1)"]["success"].append(success_dyna)
             curve_logs["Dyna-PPO(1)"]["episode_costs"].append(episode_costs_dyna)
             curve_logs["Dyna-PPO(1)"]["violation_flags"].append(violation_flags_dyna)
+            curve_logs["Dyna-PPO(1)"]["lambda"].append(lambda_log_dyna)
             render_episode_video(
                 env,
                 dyna_policy,
@@ -1571,6 +1613,8 @@ def run(args):
                 episode_times_icm,
                 steps_per_sec_icm,
                 wall_clock_times_icm,
+                beta_log_icm,
+                lambda_log_icm,
             ) = train_agent(
                 env,
                 ppo_icm_policy,
@@ -1629,6 +1673,7 @@ def run(args):
                     float(np.mean(steps_per_sec_icm)))
                 metrics["PPO + ICM"]["wall_time"].append(
                     float(wall_clock_times_icm[-1]))
+                metrics["PPO + ICM"]["lambda_vals"].append(lambda_log_icm)
                 save_model(
                     ppo_icm_policy,
                     os.path.join(
@@ -1642,6 +1687,7 @@ def run(args):
                     episode_costs_icm)
                 curve_logs["PPO + ICM"]["violation_flags"].append(
                     violation_flags_icm)
+                curve_logs["PPO + ICM"]["lambda"].append(lambda_log_icm)
                 render_episode_video(
                     env,
                     ppo_icm_policy,
@@ -1688,6 +1734,8 @@ def run(args):
                 episode_times_pc,
                 steps_per_sec_pc,
                 wall_clock_times_pc,
+                beta_log_pc,
+                lambda_log_pc,
             ) = train_agent(
                 env,
                 ppo_pc_policy,
@@ -1746,6 +1794,7 @@ def run(args):
                 float(np.mean(steps_per_sec_pc)))
             metrics["PPO + PC"]["wall_time"].append(
                 float(wall_clock_times_pc[-1]))
+            metrics["PPO + PC"]["lambda_vals"].append(lambda_log_pc)
             save_model(
                 ppo_pc_policy,
                 os.path.join(
@@ -1757,6 +1806,7 @@ def run(args):
                 episode_costs_pc)
             curve_logs["PPO + PC"]["violation_flags"].append(
                 violation_flags_pc)
+            curve_logs["PPO + PC"]["lambda"].append(lambda_log_pc)
             render_episode_video(
                 env,
                 ppo_pc_policy,
@@ -1804,6 +1854,8 @@ def run(args):
                     episode_times_icm_plan,
                     steps_per_sec_icm_plan,
                     wall_clock_times_icm_plan,
+                    beta_log_icm_plan,
+                    lambda_log_icm_plan,
                 ) = train_agent(
                     env,
                     ppo_icm_planner_policy,
@@ -1862,6 +1914,7 @@ def run(args):
                     float(np.mean(steps_per_sec_icm_plan)))
                 metrics["PPO + ICM + Planner"]["wall_time"].append(
                     float(wall_clock_times_icm_plan[-1]))
+                metrics["PPO + ICM + Planner"]["lambda_vals"].append(lambda_log_icm_plan)
                 save_model(
                     ppo_icm_planner_policy,
                     os.path.join(
@@ -1879,6 +1932,7 @@ def run(args):
                     episode_costs_icm_plan)
                 curve_logs["PPO + ICM + Planner"]["violation_flags"].append(
                     violation_flags_icm_plan)
+                curve_logs["PPO + ICM + Planner"]["lambda"].append(lambda_log_icm_plan)
                 render_episode_video(
                     env,
                     ppo_icm_planner_policy,
@@ -1939,6 +1993,8 @@ def run(args):
                 episode_times_count,
                 steps_per_sec_count,
                 wall_clock_times_count,
+                beta_log_count,
+                lambda_log_count,
             ) = train_agent(
                 env,
                 ppo_count_policy,
@@ -1996,6 +2052,7 @@ def run(args):
                 float(np.mean(steps_per_sec_count)))
             metrics["PPO + count"]["wall_time"].append(
                 float(wall_clock_times_count[-1]))
+            metrics["PPO + count"]["lambda_vals"].append(lambda_log_count)
             save_model(
                 ppo_count_policy,
                 os.path.join(
@@ -2007,6 +2064,7 @@ def run(args):
                 episode_costs_count)
             curve_logs["PPO + count"]["violation_flags"].append(
                 violation_flags_count)
+            curve_logs["PPO + count"]["lambda"].append(lambda_log_count)
             render_episode_video(
                 env,
                 ppo_count_policy,
@@ -2056,6 +2114,8 @@ def run(args):
                     episode_times_rnd,
                     steps_per_sec_rnd,
                     wall_clock_times_rnd,
+                    beta_log_rnd,
+                    lambda_log_rnd,
                 ) = train_agent(
                     env,
                     ppo_rnd_policy,
@@ -2114,6 +2174,7 @@ def run(args):
                     float(np.mean(steps_per_sec_rnd)))
                 metrics["PPO + RND"]["wall_time"].append(
                     float(wall_clock_times_rnd[-1]))
+                metrics["PPO + RND"]["lambda_vals"].append(lambda_log_rnd)
                 save_model(
                     ppo_rnd_policy,
                     os.path.join(checkpoint_dir, f"ppo_rnd_{run_seed}.pt"),
@@ -2125,6 +2186,7 @@ def run(args):
                     episode_costs_rnd)
                 curve_logs["PPO + RND"]["violation_flags"].append(
                     violation_flags_rnd)
+                curve_logs["PPO + RND"]["lambda"].append(lambda_log_rnd)
                 render_episode_video(
                     env,
                     ppo_rnd_policy,

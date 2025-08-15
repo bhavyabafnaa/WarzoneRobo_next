@@ -161,6 +161,7 @@ def train_agent(
     steps_per_sec_log = []
     wall_clock_times = []
     beta_log: List[float] = []
+    lambda_log: List[float] = []
 
     initial_bonus = max(0.1, float(initial_bonus))
 
@@ -471,6 +472,7 @@ def train_agent(
         if violation_flag == 1 and first_violation_episode is None:
             first_violation_episode = episode
         lambda_val = max(0.0, lambda_val + eta_lambda * (Jc - cost_limit))
+        lambda_log.append(lambda_val)
 
         if episode % 50 == 0:
             paths_log.append(agent_path)
@@ -591,4 +593,5 @@ def train_agent(
         steps_per_sec_log,
         wall_clock_times,
         beta_log,
+        lambda_log,
     )
