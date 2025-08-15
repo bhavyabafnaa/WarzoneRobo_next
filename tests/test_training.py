@@ -13,6 +13,7 @@ from train import (
     compute_cohens_d,
     bootstrap_ci,
     format_mean_ci,
+    parse_args,
 )
 from scipy.stats import ttest_rel
 from statsmodels.stats.multitest import multipletests
@@ -185,6 +186,84 @@ def test_success_flag_survival(tmp_path, budget):
         rewards, _, _, _, _, _, success_flags, *_rest = metrics
         assert success_flags == [1]
         assert len(rewards) == 1
+
+
+def test_parse_args_list_values():
+    args = parse_args(
+        [
+            "--initial-beta",
+            "0.1",
+            "0.2",
+            "--final-beta",
+            "0.01",
+            "0.02",
+            "--planner-bonus-decay",
+            "1.0",
+            "0.5",
+            "--tau",
+            "0.7",
+            "0.6",
+            "--kappa",
+            "4",
+            "2",
+            "--cost_weight",
+            "3",
+            "4",
+            "--risk_weight",
+            "3",
+            "2",
+        ]
+    )
+    assert args.initial_beta == [0.1, 0.2]
+    assert args.final_beta == [0.01, 0.02]
+    assert args.planner_bonus_decay == [1.0, 0.5]
+    assert args.tau == [0.7, 0.6]
+    assert args.kappa == [4.0, 2.0]
+    assert args.cost_weight == [3.0, 4.0]
+    assert args.risk_weight == [3.0, 2.0]
+
+
+def test_train_agent_with_shielding_and_bonus_decay(tmp_path):
+    env = GridWorldICM(grid_size=4, max_steps=5)
+    os.makedirs("maps", exist_ok=True)
+    env.save_map("maps/map_00.npz")
+    input_dim = 4 * env.grid_size * env.grid_size + 2
+    action_dim = 4
+    policy = PPOPolicy(input_dim, action_dim)
+    icm = ICMModule(input_dim, action_dim)
+    planner = SymbolicPlanner(env.cost_map, env.risk_map, env.np_random)
+    opt = optim.Adam(policy.parameters(), lr=1e-3)
+
+    metrics = train_agent(
+        env,
+        policy,
+        icm,
+        planner,
+        opt,
+        opt,
+        use_icm=False,
+        use_planner=True,
+        num_episodes=1,
+        beta=0.2,
+        final_beta=0.05,
+        planner_weights={"cost_weight": 2.0, "risk_weight": 4.0},
+        tau=0.6,
+        kappa=2.0,
+        planner_bonus_decay=0.5,
+        lambda_cost=0.0,
+        eta_lambda=0.05,
+        cost_limit=0.05,
+        c1=1.0,
+        c2=0.5,
+        entropy_coef=0.01,
+        clip_epsilon=0.2,
+        gamma=0.99,
+        gae_lambda=0.95,
+        seed=0,
+        imagination_k=0,
+    )
+    rewards, *_ = metrics
+    assert len(rewards) == 1
 
 
 def test_beta_schedule_consistency():

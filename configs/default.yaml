@@ -22,6 +22,7 @@ tau: 0.7
 kappa: 4.0
 initial_beta: 0.1
 final_beta: 0.01
+planner_bonus_decay: 1.0
 H: 10
 waypoint_bonus: 0.05
 K: 10
