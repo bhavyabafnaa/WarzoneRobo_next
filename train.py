@@ -2310,6 +2310,7 @@ def run(args):
                     p_violation = overall_violation_p
                     reward_effect = np.nan
                     success_effect = np.nan
+                    violation_effect = np.nan
                 else:
                     if args.stat_test == "anova" and overall_reward_p < 0.05:
                         p_reward = reward_posthoc.get(name, np.nan)
@@ -2329,12 +2330,16 @@ def run(args):
                     success_effect = compute_cohens_d(
                         baseline_success, flatten_metric(data["success"])
                     )
+                    violation_effect = compute_cohens_d(
+                        baseline_violations, np.asarray(data["violation_flags"])
+                    )
             elif name == "PPO Only":
                 p_reward = np.nan
                 p_success = np.nan
                 p_violation = np.nan
                 reward_effect = np.nan
                 success_effect = np.nan
+                violation_effect = np.nan
             else:
                 base_arr, meth_arr = get_paired_arrays(
                     metrics["PPO Only"]["rewards"], data["rewards"])
@@ -2348,6 +2353,9 @@ def run(args):
                     p_violation = ttest_rel(base_viol, meth_viol).pvalue
                     reward_effect = compute_cohens_d(base_arr, meth_arr, paired=True)
                     success_effect = compute_cohens_d(base_succ, meth_succ, paired=True)
+                    violation_effect = compute_cohens_d(
+                        base_viol, meth_viol, paired=True
+                    )
                 elif args.stat_test == "welch":
                     meth_rewards = flatten_metric(data["rewards"])
                     meth_success = flatten_metric(data["success"])
@@ -2365,6 +2373,9 @@ def run(args):
                     )
                     success_effect = compute_cohens_d(
                         baseline_success, meth_success
+                    )
+                    violation_effect = compute_cohens_d(
+                        baseline_violations, meth_viol
                     )
                 else:  # mannwhitney
                     meth_rewards = flatten_metric(data["rewards"])
@@ -2385,6 +2396,9 @@ def run(args):
                     )
                     success_effect = compute_cohens_d(
                         baseline_success, meth_success
+                    )
+                    violation_effect = compute_cohens_d(
+                        baseline_violations, meth_viol
                     )
             reward_mean, reward_ci = mean_ci(flatten_metric(data["rewards"]))
             reward = f"{reward_mean:.2f} ± {reward_ci:.2f}"
@@ -2431,6 +2445,7 @@ def run(args):
                     "Violation p-value": p_violation,
                     "Reward effect size": reward_effect,
                     "Success effect size": success_effect,
+                    "Violation effect size": violation_effect,
                     "Reward p-adj": np.nan,
                     "Success p-adj": np.nan,
                     "Violation p-adj": np.nan,

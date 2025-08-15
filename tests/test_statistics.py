@@ -4,7 +4,7 @@ import pingouin as pg
 from statsmodels.stats.oneway import anova_oneway
 from statsmodels.stats.multitest import multipletests
 from scipy.stats import friedmanchisquare
-from train import MAIN_METHODS, NAME_MAP, build_main_table
+from train import MAIN_METHODS, NAME_MAP, build_main_table, compute_cohens_d
 from src.visualization import generate_results_table
 
 
@@ -91,3 +91,23 @@ def test_main_results_table(tmp_path):
     output_path = tmp_path / "main_table.html"
     generate_results_table(df_main, str(output_path))
     assert output_path.exists()
+
+
+def test_violation_effect_size_column(tmp_path):
+    baseline = np.array([0, 1, 0, 1])
+    method = np.array([1, 1, 1, 1])
+    effect = compute_cohens_d(baseline, method)
+    assert np.isscalar(effect)
+    df = pd.DataFrame(
+        [
+            {"Model": "PPO Only", "Violation effect size": np.nan},
+            {"Model": "Method", "Violation effect size": effect},
+        ]
+    )
+    output_path = tmp_path / "viol_table.html"
+    generate_results_table(df, str(output_path))
+    assert output_path.exists()
+    csv_path = tmp_path / "viol_table.csv"
+    df_out = pd.read_csv(csv_path)
+    assert "Violation effect size" in df_out.columns
+    assert df_out["Violation effect size"].shape == (2,)
