@@ -13,11 +13,13 @@ from train import (
     bootstrap_ci,
     format_mean_ci,
     parse_args,
+    save_episode_metrics,
 )
 from scipy.stats import ttest_rel
 from statsmodels.stats.multitest import multipletests
 import yaml
 import numpy as np
+import pandas as pd
 
 
 @pytest.mark.parametrize("budget", [0.05, 0.10])
@@ -228,6 +230,13 @@ def test_parse_args_max_steps():
     assert args.max_steps == 300
 
 
+def test_parse_args_danger_distance():
+    args = parse_args([])
+    assert args.danger_distance == 2
+    args = parse_args(["--danger-distance", "3"])
+    assert args.danger_distance == 3
+
+
 def test_train_agent_with_shielding_and_bonus_decay(tmp_path):
     env = GridWorldICM(grid_size=4, max_steps=5)
     os.makedirs("maps", exist_ok=True)
@@ -358,6 +367,37 @@ def test_allow_early_stop_asserts():
             lambda_cost=0.0,
             imagination_k=0,
         )
+
+
+def test_episode_near_miss_logging(tmp_path, monkeypatch):
+    monkeypatch.chdir(tmp_path)
+    env = GridWorldICM(grid_size=2, max_steps=2)
+    env.enemy_positions = []
+    os.makedirs("maps", exist_ok=True)
+    env.save_map("maps/map_00.npz")
+    input_dim = 4 * env.grid_size * env.grid_size + 2
+    action_dim = 4
+    policy = PPOPolicy(input_dim, action_dim)
+    icm = ICMModule(input_dim, action_dim)
+    planner = SymbolicPlanner(env.cost_map, env.risk_map, env.np_random)
+    opt = optim.Adam(policy.parameters(), lr=1e-3)
+    metrics = train_agent(
+        env,
+        policy,
+        icm,
+        planner,
+        opt,
+        opt,
+        use_icm=False,
+        use_planner=False,
+        num_episodes=1,
+        imagination_k=0,
+        reset_env=False,
+    )
+    episode_data = metrics[-1]
+    save_episode_metrics("test", 0, 0, episode_data)
+    df = pd.read_csv("results/episodes/test__seed0__split-0.csv")
+    assert df["near_miss_count"].tolist() == [0]
 
 
 def test_world_model_not_instantiated(monkeypatch):
