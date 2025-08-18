@@ -133,6 +133,11 @@ def train_agent(
         If ``True`` the environment is reset and its map saved before
         training begins. Set to ``False`` to use the environment state and
         maps provided by the caller.
+    danger_distance : int, default=2
+        Manhattan distance threshold at which an enemy is considered a
+        "near miss". Any enemy within this range increments the
+        ``near_miss_count`` logged for the episode, allowing the metric to
+        reflect the environment's threat model.
     """
 
     if waypoint_bonus > 0:

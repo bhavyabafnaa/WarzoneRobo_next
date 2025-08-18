@@ -27,6 +27,7 @@ H: 10
 waypoint_bonus: 0.05
 K: 10
 world_model_lr: 0.001
+danger_distance: 2
 mine_density_range: [0.03, 0.10]
 hazard_density_range: [0.0, 0.2]
 enemy_speed_range: [1, 2]

@@ -531,6 +531,13 @@ def parse_args(arg_list: list[str] | None = None):
     parser.add_argument("--gamma", type=float, default=0.99)
     parser.add_argument("--gae_lambda", type=float, default=0.95)
     parser.add_argument(
+        "--danger-distance",
+        dest="danger_distance",
+        type=int,
+        default=2,
+        help="Manhattan distance considered a near miss",
+    )
+    parser.add_argument(
         "--tau",
         type=float,
         nargs="+",
@@ -1244,6 +1251,7 @@ def run(args):
                 clip_epsilon=args.clip_epsilon,
                 gamma=args.gamma,
                 gae_lambda=args.gae_lambda,
+                danger_distance=args.danger_distance,
                 map_id=env.map_id,
             )
             save_episode_metrics("PPO Only", run_seed, args.split, episode_data_ppo_only)
@@ -1378,6 +1386,7 @@ def run(args):
                 clip_epsilon=args.clip_epsilon,
                 gamma=args.gamma,
                 gae_lambda=args.gae_lambda,
+                danger_distance=args.danger_distance,
                 map_id=env.map_id,
             )
             save_episode_metrics("LPPO", run_seed, args.split, episode_data_lppo)
@@ -1495,6 +1504,7 @@ def run(args):
                 clip_epsilon=args.clip_epsilon,
                 gamma=args.gamma,
                 gae_lambda=args.gae_lambda,
+                danger_distance=args.danger_distance,
                 map_id=env.map_id,
             )
             save_episode_metrics("Shielded-PPO", run_seed, args.split, episode_data_shield)
@@ -1686,6 +1696,7 @@ def run(args):
                 clip_epsilon=args.clip_epsilon,
                 gamma=args.gamma,
                 gae_lambda=args.gae_lambda,
+                danger_distance=args.danger_distance,
                 map_id=env.map_id,
             )
             save_episode_metrics("Planner-Subgoal PPO", run_seed, args.split, episode_data_subgoal)
@@ -1803,6 +1814,7 @@ def run(args):
                 clip_epsilon=args.clip_epsilon,
                 gamma=args.gamma,
                 gae_lambda=args.gae_lambda,
+                danger_distance=args.danger_distance,
                 map_id=env.map_id,
             )
             save_episode_metrics("Dyna-PPO(1)", run_seed, args.split, episode_data_dyna)
@@ -1922,6 +1934,7 @@ def run(args):
                     clip_epsilon=args.clip_epsilon,
                     gamma=args.gamma,
                     gae_lambda=args.gae_lambda,
+                    danger_distance=args.danger_distance,
                     map_id=env.map_id,
                 )
             save_episode_metrics("PPO + ICM", run_seed, args.split, episode_data_icm)
@@ -2060,6 +2073,7 @@ def run(args):
                 clip_epsilon=args.clip_epsilon,
                 gamma=args.gamma,
                 gae_lambda=args.gae_lambda,
+                danger_distance=args.danger_distance,
                 map_id=env.map_id,
             )
             save_episode_metrics("PPO + PC", run_seed, args.split, episode_data_pc)
@@ -2196,6 +2210,7 @@ def run(args):
                     clip_epsilon=args.clip_epsilon,
                     gamma=args.gamma,
                     gae_lambda=args.gae_lambda,
+                    danger_distance=args.danger_distance,
                     map_id=env.map_id,
                 )
                 save_episode_metrics("PPO + ICM + Planner", run_seed, args.split, episode_data_icm_plan)
@@ -2350,6 +2365,7 @@ def run(args):
                 clip_epsilon=args.clip_epsilon,
                 gamma=args.gamma,
                 gae_lambda=args.gae_lambda,
+                danger_distance=args.danger_distance,
                 map_id=env.map_id,
             )
             save_episode_metrics("PPO + count", run_seed, args.split, episode_data_count)
@@ -2488,6 +2504,7 @@ def run(args):
                     clip_epsilon=args.clip_epsilon,
                     gamma=args.gamma,
                     gae_lambda=args.gae_lambda,
+                    danger_distance=args.danger_distance,
                     map_id=env.map_id,
                 )
                 save_episode_metrics("PPO + RND", run_seed, args.split, episode_data_rnd)
