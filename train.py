@@ -1,8 +1,6 @@
 import os
-for d in ["videos", "results", "figures", "checkpoints"]:
-    os.makedirs(d, exist_ok=True)
-import argparse
 import warnings
+import argparse
 import yaml
 import torch
 import torch.optim as optim
@@ -43,6 +41,10 @@ from src.pseudocount import PseudoCountExploration
 from src.planner import SymbolicPlanner
 from src.ppo import PPOPolicy, train_agent, get_beta_schedule
 from src.utils import save_model, count_intrinsic_spikes
+
+
+for d in ["videos", "results", "figures", "checkpoints"]:
+    os.makedirs(d, exist_ok=True)
 
 
 # Canonical method names used for the main results table
