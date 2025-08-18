@@ -1,4 +1,5 @@
 import os
+import re
 from typing import List, Tuple
 
 import gym
@@ -48,6 +49,10 @@ class GridWorldICM:
         if seed is None:
             seed = 0
         self.seed(seed)
+        # ``map_id`` tracks the identifier of the current map. Initialize to
+        # ``-1`` so that the first procedurally generated map becomes ``0``
+        # when ``reset`` is called.
+        self.map_id = -1
         self.reset()
 
     def seed(self, seed: int | None = None) -> int:
@@ -81,6 +86,8 @@ class GridWorldICM:
         if load_map_path:
             self.load_map(load_map_path)
         else:
+            # Procedurally generated map; increment ``map_id``
+            self.map_id = getattr(self, "map_id", -1) + 1
             self.cost_map = np.ones((self.grid_size, self.grid_size)) * 0.3
             # initialize hazard (risk) map
             self.hazard_density = 0.0
@@ -143,6 +150,10 @@ class GridWorldICM:
             float(data["mine_density"]) if "mine_density" in data else 0.05
         )
         self.hazard_density = (self.risk_map > 0).mean()
+        # Extract numeric map ID from filenames like ``map_XX.npz``
+        match = re.search(r"map_(\d+)\.npz$", os.path.basename(filepath))
+        if match:
+            self.map_id = int(match.group(1))
 
     def save_map(self, filepath: str = "map_data.npz") -> None:
         np.savez_compressed(

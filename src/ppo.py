@@ -207,6 +207,8 @@ def train_agent(
     if reset_env:
         env.reset(seed=seed)
         env.save_map(benchmark_map)
+    # Ensure ``map_id`` reflects the map currently loaded in the environment
+    map_id = getattr(env, "map_id", map_id)
 
     for episode in range(num_episodes):
         episode_start = time.time()

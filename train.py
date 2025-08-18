@@ -1244,7 +1244,7 @@ def run(args):
                 clip_epsilon=args.clip_epsilon,
                 gamma=args.gamma,
                 gae_lambda=args.gae_lambda,
-                map_id=0,
+                map_id=env.map_id,
             )
             save_episode_metrics("PPO Only", run_seed, args.split, episode_data_ppo_only)
             metrics["PPO Only"]["auc_reward"].append(
@@ -1378,7 +1378,7 @@ def run(args):
                 clip_epsilon=args.clip_epsilon,
                 gamma=args.gamma,
                 gae_lambda=args.gae_lambda,
-                map_id=0,
+                map_id=env.map_id,
             )
             save_episode_metrics("LPPO", run_seed, args.split, episode_data_lppo)
             metrics["LPPO"]["auc_reward"].append(
@@ -1495,7 +1495,7 @@ def run(args):
                 clip_epsilon=args.clip_epsilon,
                 gamma=args.gamma,
                 gae_lambda=args.gae_lambda,
-                map_id=0,
+                map_id=env.map_id,
             )
             save_episode_metrics("Shielded-PPO", run_seed, args.split, episode_data_shield)
             metrics["Shielded-PPO"]["auc_reward"].append(
@@ -1686,7 +1686,7 @@ def run(args):
                 clip_epsilon=args.clip_epsilon,
                 gamma=args.gamma,
                 gae_lambda=args.gae_lambda,
-                map_id=0,
+                map_id=env.map_id,
             )
             save_episode_metrics("Planner-Subgoal PPO", run_seed, args.split, episode_data_subgoal)
             metrics["Planner-Subgoal PPO"]["auc_reward"].append(
@@ -1803,7 +1803,7 @@ def run(args):
                 clip_epsilon=args.clip_epsilon,
                 gamma=args.gamma,
                 gae_lambda=args.gae_lambda,
-                map_id=0,
+                map_id=env.map_id,
             )
             save_episode_metrics("Dyna-PPO(1)", run_seed, args.split, episode_data_dyna)
             metrics["Dyna-PPO(1)"]["auc_reward"].append(
@@ -1922,7 +1922,7 @@ def run(args):
                     clip_epsilon=args.clip_epsilon,
                     gamma=args.gamma,
                     gae_lambda=args.gae_lambda,
-                    map_id=0,
+                    map_id=env.map_id,
                 )
             save_episode_metrics("PPO + ICM", run_seed, args.split, episode_data_icm)
             metrics["PPO + ICM"]["auc_reward"].append(
@@ -2060,7 +2060,7 @@ def run(args):
                 clip_epsilon=args.clip_epsilon,
                 gamma=args.gamma,
                 gae_lambda=args.gae_lambda,
-                map_id=0,
+                map_id=env.map_id,
             )
             save_episode_metrics("PPO + PC", run_seed, args.split, episode_data_pc)
             metrics["PPO + PC"]["auc_reward"].append(
@@ -2196,7 +2196,7 @@ def run(args):
                     clip_epsilon=args.clip_epsilon,
                     gamma=args.gamma,
                     gae_lambda=args.gae_lambda,
-                    map_id=0,
+                    map_id=env.map_id,
                 )
                 save_episode_metrics("PPO + ICM + Planner", run_seed, args.split, episode_data_icm_plan)
                 metrics["PPO + ICM + Planner"]["auc_reward"].append(
@@ -2350,7 +2350,7 @@ def run(args):
                 clip_epsilon=args.clip_epsilon,
                 gamma=args.gamma,
                 gae_lambda=args.gae_lambda,
-                map_id=0,
+                map_id=env.map_id,
             )
             save_episode_metrics("PPO + count", run_seed, args.split, episode_data_count)
             metrics["PPO + count"]["auc_reward"].append(
@@ -2488,7 +2488,7 @@ def run(args):
                     clip_epsilon=args.clip_epsilon,
                     gamma=args.gamma,
                     gae_lambda=args.gae_lambda,
-                    map_id=0,
+                    map_id=env.map_id,
                 )
                 save_episode_metrics("PPO + RND", run_seed, args.split, episode_data_rnd)
                 metrics["PPO + RND"]["auc_reward"].append(
