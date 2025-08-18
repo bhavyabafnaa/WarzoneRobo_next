@@ -363,6 +363,58 @@ def compute_auc_reward(reward_log: list[float]) -> float:
     return float(np.trapz(reward_log, episodes))
 
 
+def write_aggregate_csv(
+    method: str, data: dict, split: int, out_dir: str = "results/aggregates"
+) -> pd.DataFrame:
+    """Compute mean and SD for key metrics and write to a CSV file.
+
+    Parameters
+    ----------
+    method : str
+        Name of the evaluated method.
+    data : dict
+        Dictionary containing lists of metric values across runs.
+    split : int
+        Identifier for the dataset split; used in the output filename.
+    out_dir : str, default "results/aggregates"
+        Directory where the aggregate CSV will be written.
+
+    Returns
+    -------
+    pd.DataFrame
+        DataFrame containing the aggregate statistics.
+    """
+
+    metrics_to_aggregate: dict[str, list[float]] = {
+        "reward": flatten_metric(data.get("rewards", {})),
+        "success": flatten_metric(data.get("success", {})),
+        "cost": data.get("episode_costs", []),
+        "violation_rate": data.get("violation_flags", []),
+        "coverage": data.get("coverage", []),
+        "planner_adherence": data.get("adherence_rate", []),
+        "masked_action_rate": data.get("mask_rate", []),
+        "intrinsic_spike_count": data.get("spikes", []),
+    }
+    steps_values = data.get("steps_per_sec", [])
+    if steps_values:
+        metrics_to_aggregate["steps_per_sec"] = steps_values
+
+    stats: dict[str, float] = {}
+    for key, values in metrics_to_aggregate.items():
+        arr = np.asarray(values, dtype=float)
+        mean = float(arr.mean()) if arr.size else 0.0
+        sd = float(arr.std(ddof=1)) if arr.size > 1 else 0.0
+        stats[f"{key}_mean"] = mean
+        stats[f"{key}_sd"] = sd
+
+    df = pd.DataFrame([stats])
+    os.makedirs(out_dir, exist_ok=True)
+    safe_method = method.replace(" ", "_")
+    out_path = os.path.join(out_dir, f"{safe_method}__split-{split}.csv")
+    df.to_csv(out_path, index=False)
+    return df
+
+
 def parse_args(arg_list: list[str] | None = None):
     """Parse command line arguments with optional YAML config defaults.
 
@@ -394,6 +446,12 @@ def parse_args(arg_list: list[str] | None = None):
     parser.add_argument("--grid_size", type=int, default=12)
     parser.add_argument("--num_episodes", type=int, default=500)
     parser.add_argument("--max-steps", dest="max_steps", type=int, default=100)
+    parser.add_argument(
+        "--split",
+        type=int,
+        default=0,
+        help="Dataset split identifier for aggregate metrics",
+    )
     parser.add_argument(
         "--cost_weight",
         type=float,
@@ -2437,6 +2495,10 @@ def run(args):
                     plot_dir,
                     args.H,
                 )
+
+        for name, data in metrics.items():
+            if data.get("rewards"):
+                write_aggregate_csv(name, data, args.split)
 
         # Plot aggregated curves across seeds for all methods
         panel_logs: dict[str, dict[str, list[list[float]]]] = {}
