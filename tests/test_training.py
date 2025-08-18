@@ -2,13 +2,12 @@ import os
 from torch import optim
 
 import pytest
-from src.env import GridWorldICM
+from src.env import GridWorldICM, evaluate_on_benchmarks
 from src.icm import ICMModule
 from src.planner import SymbolicPlanner
 from src.pseudocount import PseudoCountExploration
 from src.ppo import PPOPolicy, train_agent, get_beta_schedule, compute_gae
 from train import (
-    evaluate_policy_on_maps,
     get_paired_arrays,
     compute_cohens_d,
     bootstrap_ci,
@@ -221,6 +220,11 @@ def test_parse_args_list_values():
     assert args.kappa == [4.0, 2.0]
     assert args.cost_weight == [3.0, 4.0]
     assert args.risk_weight == [3.0, 2.0]
+
+
+def test_parse_args_max_steps():
+    args = parse_args(["--max-steps", "300"])
+    assert args.max_steps == 300
 
 
 def test_train_agent_with_shielding_and_bonus_decay(tmp_path):
@@ -461,10 +465,50 @@ def test_per_seed_map_metrics_collection(tmp_path):
     input_dim = 4 * env.grid_size * env.grid_size + 2
     action_dim = 4
     policy = PPOPolicy(input_dim, action_dim)
-    rewards, success = evaluate_policy_on_maps(env, policy, "test_maps", 2, H=1)
-    metrics = {"PPO Only": {"rewards": {0: rewards}, "success": {0: success}}}
-    assert len(metrics["PPO Only"]["rewards"][0]) == 2
-    assert len(metrics["PPO Only"]["success"][0]) == 2
+    id_res, ood_res = evaluate_on_benchmarks(
+        env, policy, "test_maps", 2, H=1, ood_map_folder="test_maps", num_ood_maps=2
+    )
+    metrics = {
+        "PPO Only": {
+            "rewards": {0: [id_res[0]]},
+            "ood_rewards": {0: [ood_res[0]]},
+        }
+    }
+    assert len(metrics["PPO Only"]["rewards"][0]) == 1
+    assert len(metrics["PPO Only"]["ood_rewards"][0]) == 1
+
+
+def test_action_noise_changes_path():
+    env = GridWorldICM(grid_size=4, max_steps=20)
+    os.makedirs("maps", exist_ok=True)
+    env.save_map("maps/map_00.npz")
+    input_dim = 4 * env.grid_size * env.grid_size + 2
+    action_dim = 4
+
+    def run_noise(flag: bool):
+        policy = PPOPolicy(input_dim, action_dim)
+        icm = ICMModule(input_dim, action_dim)
+        planner = SymbolicPlanner(env.cost_map, env.risk_map, env.np_random)
+        opt = optim.Adam(policy.parameters(), lr=1e-3)
+        metrics = train_agent(
+            env,
+            policy,
+            icm,
+            planner,
+            opt,
+            opt,
+            use_icm=False,
+            use_planner=False,
+            num_episodes=1,
+            seed=0,
+            imagination_k=0,
+            add_noise=flag,
+        )
+        return metrics[4][0]
+
+    path_no = run_noise(False)
+    path_noise = run_noise(True)
+    assert path_noise != path_no
 
 
 def test_paired_arrays_equal_length():

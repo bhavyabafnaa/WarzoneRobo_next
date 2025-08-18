@@ -311,6 +311,9 @@ def train_agent(
 
             prev_dist = abs(g[0] - env.agent_pos[0]) + abs(g[1] - env.agent_pos[1])
 
+            if add_noise:
+                action = (action + env.np_random.integers(-1, 2)) % 4
+
             next_obs_base, ext_reward, cost_t, done, _, info = env.step(
                 action, terrain_decay=terrain_decay
             )

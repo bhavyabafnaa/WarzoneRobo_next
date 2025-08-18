@@ -393,6 +393,7 @@ def parse_args(arg_list: list[str] | None = None):
     )
     parser.add_argument("--grid_size", type=int, default=12)
     parser.add_argument("--num_episodes", type=int, default=500)
+    parser.add_argument("--max-steps", dest="max_steps", type=int, default=100)
     parser.add_argument(
         "--cost_weight",
         type=float,
@@ -666,6 +667,7 @@ def run(args):
         grid_size=grid_size,
         dynamic_risk=args.dynamic_risk,
         dynamic_cost=args.dynamic_cost,
+        max_steps=args.max_steps,
         mine_density_range=tuple(args.mine_density_range),
         hazard_density_range=tuple(args.hazard_density_range),
         enemy_speed_range=tuple(args.enemy_speed_range),
@@ -746,6 +748,7 @@ def run(args):
             "PPO Only": {
                 "rewards": {},
                 "success": {},
+                "ood_rewards": {},
                 "planner_pct": [],
                 "mask_rate": [],
                 "adherence_rate": [],
@@ -764,6 +767,7 @@ def run(args):
             "PPO + ICM": {
                 "rewards": {},
                 "success": {},
+                "ood_rewards": {},
                 "planner_pct": [],
                 "mask_rate": [],
                 "adherence_rate": [],
@@ -782,6 +786,7 @@ def run(args):
             "PPO + ICM + Planner": {
                 "rewards": {},
                 "success": {},
+                "ood_rewards": {},
                 "planner_pct": [],
                 "mask_rate": [],
                 "adherence_rate": [],
@@ -800,6 +805,7 @@ def run(args):
             "PPO + count": {
                 "rewards": {},
                 "success": {},
+                "ood_rewards": {},
                 "planner_pct": [],
                 "mask_rate": [],
                 "adherence_rate": [],
@@ -818,6 +824,7 @@ def run(args):
             "PPO + RND": {
                 "rewards": {},
                 "success": {},
+                "ood_rewards": {},
                 "planner_pct": [],
                 "mask_rate": [],
                 "adherence_rate": [],
@@ -836,6 +843,7 @@ def run(args):
             "PPO + PC": {
                 "rewards": {},
                 "success": {},
+                "ood_rewards": {},
                 "planner_pct": [],
                 "mask_rate": [],
                 "adherence_rate": [],
@@ -854,6 +862,7 @@ def run(args):
             "LPPO": {
                 "rewards": {},
                 "success": {},
+                "ood_rewards": {},
                 "planner_pct": [],
                 "mask_rate": [],
                 "adherence_rate": [],
@@ -872,6 +881,7 @@ def run(args):
             "Shielded-PPO": {
                 "rewards": {},
                 "success": {},
+                "ood_rewards": {},
                 "planner_pct": [],
                 "mask_rate": [],
                 "adherence_rate": [],
@@ -890,6 +900,7 @@ def run(args):
             "Planner-only": {
                 "rewards": {},
                 "success": {},
+                "ood_rewards": {},
                 "planner_pct": [],
                 "mask_rate": [],
                 "adherence_rate": [],
@@ -908,6 +919,7 @@ def run(args):
             "Planner-Subgoal PPO": {
                 "rewards": {},
                 "success": {},
+                "ood_rewards": {},
                 "planner_pct": [],
                 "mask_rate": [],
                 "adherence_rate": [],
@@ -926,6 +938,7 @@ def run(args):
             "Dyna-PPO(1)": {
                 "rewards": {},
                 "success": {},
+                "ood_rewards": {},
                 "planner_pct": [],
                 "mask_rate": [],
                 "adherence_rate": [],
@@ -943,6 +956,19 @@ def run(args):
             },
         }
         bench = {
+            "PPO Only": [],
+            "PPO + ICM": [],
+            "PPO + ICM + Planner": [],
+            "PPO + count": [],
+            "PPO + RND": [],
+            "PPO + PC": [],
+            "LPPO": [],
+            "Shielded-PPO": [],
+            "Planner-only": [],
+            "Planner-Subgoal PPO": [],
+            "Dyna-PPO(1)": [],
+        }
+        bench_ood = {
             "PPO Only": [],
             "PPO + ICM": [],
             "PPO + ICM + Planner": [],
@@ -1173,11 +1199,20 @@ def run(args):
                     video_dir, f"{safe_setting}_ppo_only_{run_seed}.gif"),
                 H=args.H,
             )
-            rewards_b, success_b = evaluate_policy_on_maps(
-                env, ppo_policy, "test_maps", 5, H=args.H)
-            metrics["PPO Only"]["rewards"][run_seed] = rewards_b
-            metrics["PPO Only"]["success"][run_seed] = success_b
-            bench["PPO Only"].append(float(np.mean(rewards_b)))
+            id_res, ood_res = evaluate_on_benchmarks(
+                env,
+                ppo_policy,
+                "test_maps",
+                5,
+                H=args.H,
+                ood_map_folder="ood_maps",
+                num_ood_maps=10,
+            )
+            metrics["PPO Only"]["rewards"][run_seed] = [id_res[0]]
+            metrics["PPO Only"]["success"][run_seed] = [0.0]
+            metrics["PPO Only"]["ood_rewards"][run_seed] = [ood_res[0]]
+            bench["PPO Only"].append(id_res[0])
+            bench_ood["PPO Only"].append(ood_res[0])
             plot_policy_coverage(
                 env,
                 ppo_policy,
@@ -1278,12 +1313,20 @@ def run(args):
                 os.path.join(video_dir, f"{safe_setting}_lppo_{run_seed}.gif"),
                 H=args.H,
             )
-            rewards_b, success_b = evaluate_policy_on_maps(
-                env, lppo_policy, "test_maps", 5, H=args.H
+            id_res, ood_res = evaluate_on_benchmarks(
+                env,
+                lppo_policy,
+                "test_maps",
+                5,
+                H=args.H,
+                ood_map_folder="ood_maps",
+                num_ood_maps=10,
             )
-            metrics["LPPO"]["rewards"][run_seed] = rewards_b
-            metrics["LPPO"]["success"][run_seed] = success_b
-            bench["LPPO"].append(float(np.mean(rewards_b)))
+            metrics["LPPO"]["rewards"][run_seed] = [id_res[0]]
+            metrics["LPPO"]["success"][run_seed] = [0.0]
+            metrics["LPPO"]["ood_rewards"][run_seed] = [ood_res[0]]
+            bench["LPPO"].append(id_res[0])
+            bench_ood["LPPO"].append(ood_res[0])
             plot_policy_coverage(
                 env,
                 lppo_policy,
@@ -1384,12 +1427,20 @@ def run(args):
                 os.path.join(video_dir, f"{safe_setting}_shielded_ppo_{run_seed}.gif"),
                 H=args.H,
             )
-            rewards_b, success_b = evaluate_policy_on_maps(
-                env, shield_policy, "test_maps", 5, H=args.H
+            id_res, ood_res = evaluate_on_benchmarks(
+                env,
+                shield_policy,
+                "test_maps",
+                5,
+                H=args.H,
+                ood_map_folder="ood_maps",
+                num_ood_maps=10,
             )
-            metrics["Shielded-PPO"]["rewards"][run_seed] = rewards_b
-            metrics["Shielded-PPO"]["success"][run_seed] = success_b
-            bench["Shielded-PPO"].append(float(np.mean(rewards_b)))
+            metrics["Shielded-PPO"]["rewards"][run_seed] = [id_res[0]]
+            metrics["Shielded-PPO"]["success"][run_seed] = [0.0]
+            metrics["Shielded-PPO"]["ood_rewards"][run_seed] = [ood_res[0]]
+            bench["Shielded-PPO"].append(id_res[0])
+            bench_ood["Shielded-PPO"].append(ood_res[0])
             plot_policy_coverage(
                 env,
                 shield_policy,
@@ -1564,12 +1615,20 @@ def run(args):
                 os.path.join(video_dir, f"{safe_setting}_planner_subgoal_ppo_{run_seed}.gif"),
                 H=args.H,
             )
-            rewards_b, success_b = evaluate_policy_on_maps(
-                env, subgoal_policy, "test_maps", 5, H=args.H
+            id_res, ood_res = evaluate_on_benchmarks(
+                env,
+                subgoal_policy,
+                "test_maps",
+                5,
+                H=args.H,
+                ood_map_folder="ood_maps",
+                num_ood_maps=10,
             )
-            metrics["Planner-Subgoal PPO"]["rewards"][run_seed] = rewards_b
-            metrics["Planner-Subgoal PPO"]["success"][run_seed] = success_b
-            bench["Planner-Subgoal PPO"].append(float(np.mean(rewards_b)))
+            metrics["Planner-Subgoal PPO"]["rewards"][run_seed] = [id_res[0]]
+            metrics["Planner-Subgoal PPO"]["success"][run_seed] = [0.0]
+            metrics["Planner-Subgoal PPO"]["ood_rewards"][run_seed] = [ood_res[0]]
+            bench["Planner-Subgoal PPO"].append(id_res[0])
+            bench_ood["Planner-Subgoal PPO"].append(ood_res[0])
             plot_policy_coverage(
                 env,
                 subgoal_policy,
@@ -1670,12 +1729,20 @@ def run(args):
                 os.path.join(video_dir, f"{safe_setting}_dyna_ppo1_{run_seed}.gif"),
                 H=args.H,
             )
-            rewards_b, success_b = evaluate_policy_on_maps(
-                env, dyna_policy, "test_maps", 5, H=args.H
+            id_res, ood_res = evaluate_on_benchmarks(
+                env,
+                dyna_policy,
+                "test_maps",
+                5,
+                H=args.H,
+                ood_map_folder="ood_maps",
+                num_ood_maps=10,
             )
-            metrics["Dyna-PPO(1)"]["rewards"][run_seed] = rewards_b
-            metrics["Dyna-PPO(1)"]["success"][run_seed] = success_b
-            bench["Dyna-PPO(1)"].append(float(np.mean(rewards_b)))
+            metrics["Dyna-PPO(1)"]["rewards"][run_seed] = [id_res[0]]
+            metrics["Dyna-PPO(1)"]["success"][run_seed] = [0.0]
+            metrics["Dyna-PPO(1)"]["ood_rewards"][run_seed] = [ood_res[0]]
+            bench["Dyna-PPO(1)"].append(id_res[0])
+            bench_ood["Dyna-PPO(1)"].append(ood_res[0])
             plot_policy_coverage(
                 env,
                 dyna_policy,
@@ -1797,11 +1864,20 @@ def run(args):
                         video_dir, f"{safe_setting}_ppo_icm_{run_seed}.gif"),
                     H=args.H,
                 )
-                rewards_b, success_b = evaluate_policy_on_maps(
-                    env, ppo_icm_policy, "test_maps", 5, H=args.H)
-                metrics["PPO + ICM"]["rewards"][run_seed] = rewards_b
-                metrics["PPO + ICM"]["success"][run_seed] = success_b
-                bench["PPO + ICM"].append(float(np.mean(rewards_b)))
+                id_res, ood_res = evaluate_on_benchmarks(
+                    env,
+                    ppo_icm_policy,
+                    "test_maps",
+                    5,
+                    H=args.H,
+                    ood_map_folder="ood_maps",
+                    num_ood_maps=10,
+                )
+                metrics["PPO + ICM"]["rewards"][run_seed] = [id_res[0]]
+                metrics["PPO + ICM"]["success"][run_seed] = [0.0]
+                metrics["PPO + ICM"]["ood_rewards"][run_seed] = [ood_res[0]]
+                bench["PPO + ICM"].append(id_res[0])
+                bench_ood["PPO + ICM"].append(ood_res[0])
                 plot_policy_coverage(
                     env,
                     ppo_icm_policy,
@@ -1920,11 +1996,20 @@ def run(args):
                     video_dir, f"{safe_setting}_ppo_pc_{run_seed}.gif"),
                 H=args.H,
             )
-            rewards_b, success_b = evaluate_policy_on_maps(
-                env, ppo_pc_policy, "test_maps", 5, H=args.H)
-            metrics["PPO + PC"]["rewards"][run_seed] = rewards_b
-            metrics["PPO + PC"]["success"][run_seed] = success_b
-            bench["PPO + PC"].append(float(np.mean(rewards_b)))
+            id_res, ood_res = evaluate_on_benchmarks(
+                env,
+                ppo_pc_policy,
+                "test_maps",
+                5,
+                H=args.H,
+                ood_map_folder="ood_maps",
+                num_ood_maps=10,
+            )
+            metrics["PPO + PC"]["rewards"][run_seed] = [id_res[0]]
+            metrics["PPO + PC"]["success"][run_seed] = [0.0]
+            metrics["PPO + PC"]["ood_rewards"][run_seed] = [ood_res[0]]
+            bench["PPO + PC"].append(id_res[0])
+            bench_ood["PPO + PC"].append(ood_res[0])
             plot_policy_coverage(
                 env,
                 ppo_pc_policy,
@@ -2051,11 +2136,20 @@ def run(args):
                     ),
                     H=args.H,
                 )
-                rewards_b, success_b = evaluate_policy_on_maps(
-                    env, ppo_icm_planner_policy, "test_maps", 5, H=args.H)
-                metrics["PPO + ICM + Planner"]["rewards"][run_seed] = rewards_b
-                metrics["PPO + ICM + Planner"]["success"][run_seed] = success_b
-                bench["PPO + ICM + Planner"].append(float(np.mean(rewards_b)))
+                id_res, ood_res = evaluate_on_benchmarks(
+                    env,
+                    ppo_icm_planner_policy,
+                    "test_maps",
+                    5,
+                    H=args.H,
+                    ood_map_folder="ood_maps",
+                    num_ood_maps=10,
+                )
+                metrics["PPO + ICM + Planner"]["rewards"][run_seed] = [id_res[0]]
+                metrics["PPO + ICM + Planner"]["success"][run_seed] = [0.0]
+                metrics["PPO + ICM + Planner"]["ood_rewards"][run_seed] = [ood_res[0]]
+                bench["PPO + ICM + Planner"].append(id_res[0])
+                bench_ood["PPO + ICM + Planner"].append(ood_res[0])
                 plot_policy_coverage(
                     env,
                     ppo_icm_planner_policy,
@@ -2186,11 +2280,20 @@ def run(args):
                     video_dir, f"{safe_setting}_ppo_count_{run_seed}.gif"),
                 H=args.H,
             )
-            rewards_b, success_b = evaluate_policy_on_maps(
-                env, ppo_count_policy, "test_maps", 5, H=args.H)
-            metrics["PPO + count"]["rewards"][run_seed] = rewards_b
-            metrics["PPO + count"]["success"][run_seed] = success_b
-            bench["PPO + count"].append(float(np.mean(rewards_b)))
+            id_res, ood_res = evaluate_on_benchmarks(
+                env,
+                ppo_count_policy,
+                "test_maps",
+                5,
+                H=args.H,
+                ood_map_folder="ood_maps",
+                num_ood_maps=10,
+            )
+            metrics["PPO + count"]["rewards"][run_seed] = [id_res[0]]
+            metrics["PPO + count"]["success"][run_seed] = [0.0]
+            metrics["PPO + count"]["ood_rewards"][run_seed] = [ood_res[0]]
+            bench["PPO + count"].append(id_res[0])
+            bench_ood["PPO + count"].append(ood_res[0])
             plot_policy_coverage(
                 env,
                 ppo_count_policy,
@@ -2312,11 +2415,20 @@ def run(args):
                         video_dir, f"{safe_setting}_ppo_rnd_{run_seed}.gif"),
                     H=args.H,
                 )
-                rewards_b, success_b = evaluate_policy_on_maps(
-                    env, ppo_rnd_policy, "test_maps", 5, H=args.H)
-                metrics["PPO + RND"]["rewards"][run_seed] = rewards_b
-                metrics["PPO + RND"]["success"][run_seed] = success_b
-                bench["PPO + RND"].append(float(np.mean(rewards_b)))
+                id_res, ood_res = evaluate_on_benchmarks(
+                    env,
+                    ppo_rnd_policy,
+                    "test_maps",
+                    5,
+                    H=args.H,
+                    ood_map_folder="ood_maps",
+                    num_ood_maps=10,
+                )
+                metrics["PPO + RND"]["rewards"][run_seed] = [id_res[0]]
+                metrics["PPO + RND"]["success"][run_seed] = [0.0]
+                metrics["PPO + RND"]["ood_rewards"][run_seed] = [ood_res[0]]
+                bench["PPO + RND"].append(id_res[0])
+                bench_ood["PPO + RND"].append(ood_res[0])
                 plot_policy_coverage(
                     env,
                     ppo_rnd_policy,
@@ -2582,6 +2694,8 @@ def run(args):
                     )
             reward_mean, reward_ci = mean_ci(flatten_metric(data["rewards"]))
             reward = f"{reward_mean:.2f} ± {reward_ci:.2f}"
+            ood_mean, ood_ci = mean_ci(flatten_metric(data["ood_rewards"]))
+            reward_ood = f"{ood_mean:.2f} ± {ood_ci:.2f}"
             if name != "PPO Only":
                 check_reward_difference_ci(
                     flatten_metric(metrics["PPO Only"]["rewards"]),
@@ -2608,6 +2722,7 @@ def run(args):
                     "Setting": setting["name"],
                     "Model": name,
                     "Train Reward": reward,
+                    "OOD Reward": reward_ood,
                     "Reward AUC": auc_reward,
                     "Success": success,
                     "Planner Usage %": planner,
@@ -2645,15 +2760,17 @@ def run(args):
 
         bench_results = []
         for name, vals in bench.items():
-            if vals:
-                bench_results.append(
-                    {
-                        "Budget": args.cost_limit,
-                        "Setting": setting["name"],
-                        "Model": name,
-                        "Benchmark Reward": format_mean_ci(vals),
-                    }
-                )
+            ood_vals = bench_ood.get(name, [])
+            if vals or ood_vals:
+                entry = {
+                    "Budget": args.cost_limit,
+                    "Setting": setting["name"],
+                    "Model": name,
+                    "Benchmark Reward": format_mean_ci(vals) if vals else "N/A",
+                }
+                if ood_vals:
+                    entry["OOD Reward"] = format_mean_ci(ood_vals)
+                bench_results.append(entry)
 
         if reward_ps:
             _, padj, _, _ = multipletests(reward_ps, method="holm")
