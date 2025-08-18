@@ -82,9 +82,9 @@ def build_main_table(df_train: pd.DataFrame) -> pd.DataFrame:
         "Success": "Success (±CI)",
         "Train Cost": "Avg Cost (±CI)",
         "Pr[Jc > d]": "Violations % (±CI)",
-        "Adherence Rate": "Planner Adherence %",
-        "Mask Rate": "Masked %",
-        "Coverage": "Coverage",
+        "Planner Adherence %": "Planner Adherence %",
+        "Masked Action Rate": "Masked %",
+        "Unique Cells": "Unique Cells",
         "Reward p-value": "p_reward",
         "Violation p-value": "p_violation",
     }
@@ -207,15 +207,16 @@ EPISODE_COLUMNS = [
     "success",
     "cost_sum",
     "steps",
-    "coverage",
+    "unique_cells",
     "min_enemy_dist",
-    "planner_adherence",
-    "mask_rate",
-    "lambda",
+    "planner_adherence_pct",
+    "masked_action_rate",
+    "lambda_lagrange",
     "wall_clock",
     "near_miss_count",
     "intrinsic_icm_sum",
     "intrinsic_rnd_sum",
+    "intrinsic_spike_count",
     "policy_entropy_mean",
     "value_loss",
     "kl_policy",
@@ -427,9 +428,9 @@ def write_aggregate_csv(
         "success": flatten_metric(data.get("success", {})),
         "cost": data.get("episode_costs", []),
         "violation_rate": data.get("violation_flags", []),
-        "coverage": data.get("coverage", []),
-        "planner_adherence": data.get("adherence_rate", []),
-        "masked_action_rate": data.get("mask_rate", []),
+        "unique_cells": data.get("unique_cells", []),
+        "planner_adherence_pct": data.get("planner_adherence_pct", []),
+        "masked_action_rate": data.get("masked_action_rate", []),
         "intrinsic_spike_count": data.get("spikes", []),
     }
     steps_values = data.get("steps_per_sec", [])
@@ -852,13 +853,13 @@ def run(args):
                 "success": {},
                 "ood_rewards": {},
                 "planner_pct": [],
-                "mask_rate": [],
-                "adherence_rate": [],
+                "masked_action_rate": [],
+                "planner_adherence_pct": [],
                 "spikes": [],
                 "episode_costs": [],
                 "violation_flags": [],
                 "first_violation_episode": [],
-                "coverage": [],
+                "unique_cells": [],
                 "min_dist": [],
                 "episode_time": [],
                 "steps_per_sec": [],
@@ -871,13 +872,13 @@ def run(args):
                 "success": {},
                 "ood_rewards": {},
                 "planner_pct": [],
-                "mask_rate": [],
-                "adherence_rate": [],
+                "masked_action_rate": [],
+                "planner_adherence_pct": [],
                 "spikes": [],
                 "episode_costs": [],
                 "violation_flags": [],
                 "first_violation_episode": [],
-                "coverage": [],
+                "unique_cells": [],
                 "min_dist": [],
                 "episode_time": [],
                 "steps_per_sec": [],
@@ -890,13 +891,13 @@ def run(args):
                 "success": {},
                 "ood_rewards": {},
                 "planner_pct": [],
-                "mask_rate": [],
-                "adherence_rate": [],
+                "masked_action_rate": [],
+                "planner_adherence_pct": [],
                 "spikes": [],
                 "episode_costs": [],
                 "violation_flags": [],
                 "first_violation_episode": [],
-                "coverage": [],
+                "unique_cells": [],
                 "min_dist": [],
                 "episode_time": [],
                 "steps_per_sec": [],
@@ -909,13 +910,13 @@ def run(args):
                 "success": {},
                 "ood_rewards": {},
                 "planner_pct": [],
-                "mask_rate": [],
-                "adherence_rate": [],
+                "masked_action_rate": [],
+                "planner_adherence_pct": [],
                 "spikes": [],
                 "episode_costs": [],
                 "violation_flags": [],
                 "first_violation_episode": [],
-                "coverage": [],
+                "unique_cells": [],
                 "min_dist": [],
                 "episode_time": [],
                 "steps_per_sec": [],
@@ -928,13 +929,13 @@ def run(args):
                 "success": {},
                 "ood_rewards": {},
                 "planner_pct": [],
-                "mask_rate": [],
-                "adherence_rate": [],
+                "masked_action_rate": [],
+                "planner_adherence_pct": [],
                 "spikes": [],
                 "episode_costs": [],
                 "violation_flags": [],
                 "first_violation_episode": [],
-                "coverage": [],
+                "unique_cells": [],
                 "min_dist": [],
                 "episode_time": [],
                 "steps_per_sec": [],
@@ -947,13 +948,13 @@ def run(args):
                 "success": {},
                 "ood_rewards": {},
                 "planner_pct": [],
-                "mask_rate": [],
-                "adherence_rate": [],
+                "masked_action_rate": [],
+                "planner_adherence_pct": [],
                 "spikes": [],
                 "episode_costs": [],
                 "violation_flags": [],
                 "first_violation_episode": [],
-                "coverage": [],
+                "unique_cells": [],
                 "min_dist": [],
                 "episode_time": [],
                 "steps_per_sec": [],
@@ -966,13 +967,13 @@ def run(args):
                 "success": {},
                 "ood_rewards": {},
                 "planner_pct": [],
-                "mask_rate": [],
-                "adherence_rate": [],
+                "masked_action_rate": [],
+                "planner_adherence_pct": [],
                 "spikes": [],
                 "episode_costs": [],
                 "violation_flags": [],
                 "first_violation_episode": [],
-                "coverage": [],
+                "unique_cells": [],
                 "min_dist": [],
                 "episode_time": [],
                 "steps_per_sec": [],
@@ -985,13 +986,13 @@ def run(args):
                 "success": {},
                 "ood_rewards": {},
                 "planner_pct": [],
-                "mask_rate": [],
-                "adherence_rate": [],
+                "masked_action_rate": [],
+                "planner_adherence_pct": [],
                 "spikes": [],
                 "episode_costs": [],
                 "violation_flags": [],
                 "first_violation_episode": [],
-                "coverage": [],
+                "unique_cells": [],
                 "min_dist": [],
                 "episode_time": [],
                 "steps_per_sec": [],
@@ -1004,13 +1005,13 @@ def run(args):
                 "success": {},
                 "ood_rewards": {},
                 "planner_pct": [],
-                "mask_rate": [],
-                "adherence_rate": [],
+                "masked_action_rate": [],
+                "planner_adherence_pct": [],
                 "spikes": [],
                 "episode_costs": [],
                 "violation_flags": [],
                 "first_violation_episode": [],
-                "coverage": [],
+                "unique_cells": [],
                 "min_dist": [],
                 "episode_time": [],
                 "steps_per_sec": [],
@@ -1023,13 +1024,13 @@ def run(args):
                 "success": {},
                 "ood_rewards": {},
                 "planner_pct": [],
-                "mask_rate": [],
-                "adherence_rate": [],
+                "masked_action_rate": [],
+                "planner_adherence_pct": [],
                 "spikes": [],
                 "episode_costs": [],
                 "violation_flags": [],
                 "first_violation_episode": [],
-                "coverage": [],
+                "unique_cells": [],
                 "min_dist": [],
                 "episode_time": [],
                 "steps_per_sec": [],
@@ -1042,13 +1043,13 @@ def run(args):
                 "success": {},
                 "ood_rewards": {},
                 "planner_pct": [],
-                "mask_rate": [],
-                "adherence_rate": [],
+                "masked_action_rate": [],
+                "planner_adherence_pct": [],
                 "spikes": [],
                 "episode_costs": [],
                 "violation_flags": [],
                 "first_violation_episode": [],
-                "coverage": [],
+                "unique_cells": [],
                 "min_dist": [],
                 "episode_time": [],
                 "steps_per_sec": [],
@@ -1262,9 +1263,9 @@ def run(args):
             )
             metrics["PPO Only"]["planner_pct"].append(
                 float(np.mean(planner_rate_ppo_only)))
-            metrics["PPO Only"]["mask_rate"].append(
+            metrics["PPO Only"]["masked_action_rate"].append(
                 float(np.mean(mask_rates_ppo_only)))
-            metrics["PPO Only"]["adherence_rate"].append(
+            metrics["PPO Only"]["planner_adherence_pct"].append(
                 float(np.mean(adherence_rates_ppo_only)))
             metrics["PPO Only"]["min_dist"].append(
                 float(np.mean(min_dists_ppo_only)))
@@ -1277,7 +1278,7 @@ def run(args):
             metrics["PPO Only"]["first_violation_episode"].append(
                 first_violation_episode_ppo_only
             )
-            metrics["PPO Only"]["coverage"].append(
+            metrics["PPO Only"]["unique_cells"].append(
                 float(np.mean(coverage_ppo_only)))
             metrics["PPO Only"]["episode_time"].append(
                 float(np.mean(episode_times_ppo_only)))
@@ -1396,14 +1397,14 @@ def run(args):
                 compute_auc_reward(rewards_lppo)
             )
             metrics["LPPO"]["planner_pct"].append(float(np.mean(planner_rate_lppo)))
-            metrics["LPPO"]["mask_rate"].append(float(np.mean(mask_rates_lppo)))
-            metrics["LPPO"]["adherence_rate"].append(float(np.mean(adherence_rates_lppo)))
+            metrics["LPPO"]["masked_action_rate"].append(float(np.mean(mask_rates_lppo)))
+            metrics["LPPO"]["planner_adherence_pct"].append(float(np.mean(adherence_rates_lppo)))
             metrics["LPPO"]["min_dist"].append(float(np.mean(min_dists_lppo)))
             metrics["LPPO"]["spikes"].append(count_intrinsic_spikes(intrinsic_lppo))
             metrics["LPPO"]["episode_costs"].append(float(np.mean(episode_costs_lppo)))
             metrics["LPPO"]["violation_flags"].append(float(np.mean(violation_flags_lppo)))
             metrics["LPPO"]["first_violation_episode"].append(first_violation_episode_lppo)
-            metrics["LPPO"]["coverage"].append(float(np.mean(coverage_lppo)))
+            metrics["LPPO"]["unique_cells"].append(float(np.mean(coverage_lppo)))
             metrics["LPPO"]["episode_time"].append(float(np.mean(episode_times_lppo)))
             metrics["LPPO"]["steps_per_sec"].append(float(np.mean(steps_per_sec_lppo)))
             metrics["LPPO"]["wall_time"].append(float(wall_clock_times_lppo[-1]))
@@ -1514,14 +1515,14 @@ def run(args):
                 compute_auc_reward(rewards_shield)
             )
             metrics["Shielded-PPO"]["planner_pct"].append(float(np.mean(planner_rate_shield)))
-            metrics["Shielded-PPO"]["mask_rate"].append(float(np.mean(mask_rates_shield)))
-            metrics["Shielded-PPO"]["adherence_rate"].append(float(np.mean(adherence_rates_shield)))
+            metrics["Shielded-PPO"]["masked_action_rate"].append(float(np.mean(mask_rates_shield)))
+            metrics["Shielded-PPO"]["planner_adherence_pct"].append(float(np.mean(adherence_rates_shield)))
             metrics["Shielded-PPO"]["min_dist"].append(float(np.mean(min_dists_shield)))
             metrics["Shielded-PPO"]["spikes"].append(count_intrinsic_spikes(intrinsic_shield))
             metrics["Shielded-PPO"]["episode_costs"].append(float(np.mean(episode_costs_shield)))
             metrics["Shielded-PPO"]["violation_flags"].append(float(np.mean(violation_flags_shield)))
             metrics["Shielded-PPO"]["first_violation_episode"].append(first_violation_episode_shield)
-            metrics["Shielded-PPO"]["coverage"].append(float(np.mean(coverage_shield)))
+            metrics["Shielded-PPO"]["unique_cells"].append(float(np.mean(coverage_shield)))
             metrics["Shielded-PPO"]["episode_time"].append(float(np.mean(episode_times_shield)))
             metrics["Shielded-PPO"]["steps_per_sec"].append(float(np.mean(steps_per_sec_shield)))
             metrics["Shielded-PPO"]["wall_time"].append(float(wall_clock_times_shield[-1]))
@@ -1615,14 +1616,14 @@ def run(args):
                 steps_per_sec_po.append(step_count / ep_time if ep_time > 0 else 0.0)
                 wall_clock_po.append(time.time() - start_po)
             metrics["Planner-only"]["planner_pct"].append(1.0)
-            metrics["Planner-only"]["mask_rate"].append(0.0)
-            metrics["Planner-only"]["adherence_rate"].append(1.0)
+            metrics["Planner-only"]["masked_action_rate"].append(0.0)
+            metrics["Planner-only"]["planner_adherence_pct"].append(1.0)
             metrics["Planner-only"]["min_dist"].append(float(np.mean(min_dists_po)))
             metrics["Planner-only"]["spikes"].append(0)
             metrics["Planner-only"]["episode_costs"].append(float(np.mean(episode_costs_po)))
             metrics["Planner-only"]["violation_flags"].append(float(np.mean(violation_flags_po)))
             metrics["Planner-only"]["first_violation_episode"].append(first_violation_po)
-            metrics["Planner-only"]["coverage"].append(float(np.mean(coverage_po)))
+            metrics["Planner-only"]["unique_cells"].append(float(np.mean(coverage_po)))
             metrics["Planner-only"]["episode_time"].append(float(np.mean(episode_times_po)))
             metrics["Planner-only"]["steps_per_sec"].append(float(np.mean(steps_per_sec_po)))
             metrics["Planner-only"]["wall_time"].append(float(wall_clock_po[-1]))
@@ -1706,14 +1707,14 @@ def run(args):
                 compute_auc_reward(rewards_subgoal)
             )
             metrics["Planner-Subgoal PPO"]["planner_pct"].append(float(np.mean(planner_rate_subgoal)))
-            metrics["Planner-Subgoal PPO"]["mask_rate"].append(float(np.mean(mask_rates_subgoal)))
-            metrics["Planner-Subgoal PPO"]["adherence_rate"].append(float(np.mean(adherence_rates_subgoal)))
+            metrics["Planner-Subgoal PPO"]["masked_action_rate"].append(float(np.mean(mask_rates_subgoal)))
+            metrics["Planner-Subgoal PPO"]["planner_adherence_pct"].append(float(np.mean(adherence_rates_subgoal)))
             metrics["Planner-Subgoal PPO"]["min_dist"].append(float(np.mean(min_dists_subgoal)))
             metrics["Planner-Subgoal PPO"]["spikes"].append(count_intrinsic_spikes(intrinsic_subgoal))
             metrics["Planner-Subgoal PPO"]["episode_costs"].append(float(np.mean(episode_costs_subgoal)))
             metrics["Planner-Subgoal PPO"]["violation_flags"].append(float(np.mean(violation_flags_subgoal)))
             metrics["Planner-Subgoal PPO"]["first_violation_episode"].append(first_violation_episode_subgoal)
-            metrics["Planner-Subgoal PPO"]["coverage"].append(float(np.mean(coverage_subgoal)))
+            metrics["Planner-Subgoal PPO"]["unique_cells"].append(float(np.mean(coverage_subgoal)))
             metrics["Planner-Subgoal PPO"]["episode_time"].append(float(np.mean(episode_times_subgoal)))
             metrics["Planner-Subgoal PPO"]["steps_per_sec"].append(float(np.mean(steps_per_sec_subgoal)))
             metrics["Planner-Subgoal PPO"]["wall_time"].append(float(wall_clock_times_subgoal[-1]))
@@ -1824,14 +1825,14 @@ def run(args):
                 compute_auc_reward(rewards_dyna)
             )
             metrics["Dyna-PPO(1)"]["planner_pct"].append(float(np.mean(planner_rate_dyna)))
-            metrics["Dyna-PPO(1)"]["mask_rate"].append(float(np.mean(mask_rates_dyna)))
-            metrics["Dyna-PPO(1)"]["adherence_rate"].append(float(np.mean(adherence_rates_dyna)))
+            metrics["Dyna-PPO(1)"]["masked_action_rate"].append(float(np.mean(mask_rates_dyna)))
+            metrics["Dyna-PPO(1)"]["planner_adherence_pct"].append(float(np.mean(adherence_rates_dyna)))
             metrics["Dyna-PPO(1)"]["min_dist"].append(float(np.mean(min_dists_dyna)))
             metrics["Dyna-PPO(1)"]["spikes"].append(count_intrinsic_spikes(intrinsic_dyna))
             metrics["Dyna-PPO(1)"]["episode_costs"].append(float(np.mean(episode_costs_dyna)))
             metrics["Dyna-PPO(1)"]["violation_flags"].append(float(np.mean(violation_flags_dyna)))
             metrics["Dyna-PPO(1)"]["first_violation_episode"].append(first_violation_episode_dyna)
-            metrics["Dyna-PPO(1)"]["coverage"].append(float(np.mean(coverage_dyna)))
+            metrics["Dyna-PPO(1)"]["unique_cells"].append(float(np.mean(coverage_dyna)))
             metrics["Dyna-PPO(1)"]["episode_time"].append(float(np.mean(episode_times_dyna)))
             metrics["Dyna-PPO(1)"]["steps_per_sec"].append(float(np.mean(steps_per_sec_dyna)))
             metrics["Dyna-PPO(1)"]["wall_time"].append(float(wall_clock_times_dyna[-1]))
@@ -1945,9 +1946,9 @@ def run(args):
             )
             metrics["PPO + ICM"]["planner_pct"].append(
                 float(np.mean(planner_rate_icm)))
-            metrics["PPO + ICM"]["mask_rate"].append(
+            metrics["PPO + ICM"]["masked_action_rate"].append(
                 float(np.mean(mask_rates_icm)))
-            metrics["PPO + ICM"]["adherence_rate"].append(
+            metrics["PPO + ICM"]["planner_adherence_pct"].append(
                 float(np.mean(adherence_rates_icm)))
             metrics["PPO + ICM"]["min_dist"].append(
                 float(np.mean(min_dists_icm)))
@@ -1961,7 +1962,7 @@ def run(args):
             metrics["PPO + ICM"]["first_violation_episode"].append(
                 first_violation_episode_icm
             )
-            metrics["PPO + ICM"]["coverage"].append(
+            metrics["PPO + ICM"]["unique_cells"].append(
                 float(np.mean(coverage_icm)))
             metrics["PPO + ICM"]["episode_time"].append(
                 float(np.mean(episode_times_icm)))
@@ -2084,9 +2085,9 @@ def run(args):
             )
             metrics["PPO + PC"]["planner_pct"].append(
                 float(np.mean(planner_rate_pc)))
-            metrics["PPO + PC"]["mask_rate"].append(
+            metrics["PPO + PC"]["masked_action_rate"].append(
                 float(np.mean(mask_rates_pc)))
-            metrics["PPO + PC"]["adherence_rate"].append(
+            metrics["PPO + PC"]["planner_adherence_pct"].append(
                 float(np.mean(adherence_rates_pc)))
             metrics["PPO + PC"]["min_dist"].append(
                 float(np.mean(min_dists_pc)))
@@ -2099,7 +2100,7 @@ def run(args):
             metrics["PPO + PC"]["first_violation_episode"].append(
                 first_violation_episode_pc
             )
-            metrics["PPO + PC"]["coverage"].append(
+            metrics["PPO + PC"]["unique_cells"].append(
                 float(np.mean(coverage_pc)))
             metrics["PPO + PC"]["episode_time"].append(
                 float(np.mean(episode_times_pc)))
@@ -2221,9 +2222,9 @@ def run(args):
                 )
                 metrics["PPO + ICM + Planner"]["planner_pct"].append(
                     float(np.mean(planner_rate_plan)))
-                metrics["PPO + ICM + Planner"]["mask_rate"].append(
+                metrics["PPO + ICM + Planner"]["masked_action_rate"].append(
                     float(np.mean(mask_rates_icm_plan)))
-                metrics["PPO + ICM + Planner"]["adherence_rate"].append(
+                metrics["PPO + ICM + Planner"]["planner_adherence_pct"].append(
                     float(np.mean(adherence_rates_icm_plan)))
                 metrics["PPO + ICM + Planner"]["min_dist"].append(
                     float(np.mean(min_dists_icm_plan)))
@@ -2236,7 +2237,7 @@ def run(args):
                 metrics["PPO + ICM + Planner"]["first_violation_episode"].append(
                     first_violation_episode_icm_plan
                 )
-                metrics["PPO + ICM + Planner"]["coverage"].append(
+                metrics["PPO + ICM + Planner"]["unique_cells"].append(
                     float(np.mean(coverage_icm_plan)))
                 metrics["PPO + ICM + Planner"]["episode_time"].append(
                     float(np.mean(episode_times_icm_plan)))
@@ -2376,9 +2377,9 @@ def run(args):
             )
             metrics["PPO + count"]["planner_pct"].append(
                 float(np.mean(planner_rate_count)))
-            metrics["PPO + count"]["mask_rate"].append(
+            metrics["PPO + count"]["masked_action_rate"].append(
                 float(np.mean(mask_rates_count)))
-            metrics["PPO + count"]["adherence_rate"].append(
+            metrics["PPO + count"]["planner_adherence_pct"].append(
                 float(np.mean(adherence_rates_count)))
             metrics["PPO + count"]["min_dist"].append(
                 float(np.mean(min_dists_count)))
@@ -2391,7 +2392,7 @@ def run(args):
             metrics["PPO + count"]["first_violation_episode"].append(
                 first_violation_episode_count
             )
-            metrics["PPO + count"]["coverage"].append(
+            metrics["PPO + count"]["unique_cells"].append(
                 float(np.mean(coverage_count)))
             metrics["PPO + count"]["episode_time"].append(
                 float(np.mean(episode_times_count)))
@@ -2515,9 +2516,9 @@ def run(args):
                 )
                 metrics["PPO + RND"]["planner_pct"].append(
                     float(np.mean(planner_rate_rnd)))
-                metrics["PPO + RND"]["mask_rate"].append(
+                metrics["PPO + RND"]["masked_action_rate"].append(
                     float(np.mean(mask_rates_rnd)))
-                metrics["PPO + RND"]["adherence_rate"].append(
+                metrics["PPO + RND"]["planner_adherence_pct"].append(
                     float(np.mean(adherence_rates_rnd)))
                 metrics["PPO + RND"]["min_dist"].append(
                     float(np.mean(min_dists_rnd)))
@@ -2530,7 +2531,7 @@ def run(args):
                 metrics["PPO + RND"]["first_violation_episode"].append(
                     first_violation_episode_rnd
                 )
-                metrics["PPO + RND"]["coverage"].append(
+                metrics["PPO + RND"]["unique_cells"].append(
                     float(np.mean(coverage_rnd)))
                 metrics["PPO + RND"]["episode_time"].append(
                     float(np.mean(episode_times_rnd)))
@@ -2850,9 +2851,11 @@ def run(args):
             auc_reward = format_mean_ci(data["auc_reward"])
             success = format_bootstrap_ci(flatten_metric(data["success"]))
             planner = format_mean_ci(data["planner_pct"], scale=100)
-            mask_rate = format_mean_ci(data["mask_rate"], scale=100)
-            adherence = format_mean_ci(data["adherence_rate"])
-            coverage = format_mean_ci(data["coverage"])
+            masked_action_rate = format_mean_ci(data["masked_action_rate"], scale=100)
+            planner_adherence = format_mean_ci(
+                data["planner_adherence_pct"], scale=100
+            )
+            unique_cells = format_mean_ci(data["unique_cells"])
             min_dist = format_mean_ci(data["min_dist"])
             episode_time = format_mean_ci(data["episode_time"])
             steps_per_sec = format_mean_ci(data["steps_per_sec"])
@@ -2873,9 +2876,9 @@ def run(args):
                     "Reward AUC": auc_reward,
                     "Success": success,
                     "Planner Usage %": planner,
-                    "Mask Rate": mask_rate,
-                    "Adherence Rate": adherence,
-                    "Coverage": coverage,
+                    "Masked Action Rate": masked_action_rate,
+                    "Planner Adherence %": planner_adherence,
+                    "Unique Cells": unique_cells,
                     "Min Enemy Dist": min_dist,
                     "Episode Time": episode_time,
                     "Steps/s": steps_per_sec,

@@ -62,9 +62,9 @@ def test_main_results_table(tmp_path):
             "Success": "1.00 ± 0.00",
             "Train Cost": "1.00 ± 0.00",
             "Pr[Jc > d]": "0.00 ± 0.00",
-            "Adherence Rate": "1.00 ± 0.00",
-            "Mask Rate": "0.00 ± 0.00",
-            "Coverage": "1.00 ± 0.00",
+            "Planner Adherence %": "1.00 ± 0.00",
+            "Masked Action Rate": "0.00 ± 0.00",
+            "Unique Cells": "1.00 ± 0.00",
             "Reward p-value": 0.05,
             "Violation p-value": 0.10,
         }
@@ -84,7 +84,7 @@ def test_main_results_table(tmp_path):
         "Violations % (±CI)",
         "Planner Adherence %",
         "Masked %",
-        "Coverage",
+        "Unique Cells",
         "p_reward",
         "p_violation",
     ]
