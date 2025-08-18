@@ -398,6 +398,7 @@ def test_episode_near_miss_logging(tmp_path, monkeypatch):
     save_episode_metrics("test", 0, 0, episode_data)
     df = pd.read_csv("results/episodes/test__seed0__split-0.csv")
     assert df["near_miss_count"].tolist() == [0]
+    assert df["intrinsic_spike_count"].tolist() == [0]
 
 
 def test_world_model_not_instantiated(monkeypatch):

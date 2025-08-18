@@ -11,6 +11,7 @@ from .icm import ICMModule
 from .rnd import RNDModule
 from .pseudocount import PseudoCountExploration
 from .world_model import WorldModel, ReplayBuffer
+from .utils import count_intrinsic_spikes
 
 
 class PPOPolicy(nn.Module):
@@ -561,9 +562,9 @@ def train_agent(
                 logger.add_scalar("lambda_val", lambda_val, episode)
                 logger.add_scalar("episode_cost", Jc, episode)
                 logger.add_scalar("constraint_violation", violation_flag, episode)
-                logger.add_scalar("mask_rate", mask_rate, episode)
-                logger.add_scalar("adherence_rate", adherence_rate, episode)
-                logger.add_scalar("coverage", coverage, episode)
+                logger.add_scalar("masked_action_rate", mask_rate, episode)
+                logger.add_scalar("planner_adherence_pct", adherence_rate, episode)
+                logger.add_scalar("unique_cells", coverage, episode)
                 logger.add_scalar("min_enemy_dist", min_dist_val, episode)
                 logger.add_scalar("episode_time", elapsed, episode)
                 logger.add_scalar("steps_per_sec", steps_per_sec, episode)
@@ -582,9 +583,9 @@ def train_agent(
                         "lambda_val": lambda_val,
                         "episode_cost": Jc,
                     "constraint_violation": violation_flag,
-                    "mask_rate": mask_rate,
-                    "adherence_rate": adherence_rate,
-                    "coverage": coverage,
+                    "masked_action_rate": mask_rate,
+                    "planner_adherence_pct": adherence_rate,
+                    "unique_cells": coverage,
                     "min_enemy_dist": min_dist_val,
                         "episode_time": elapsed,
                         "steps_per_sec": steps_per_sec,
@@ -603,9 +604,9 @@ def train_agent(
             f"PPO: {ppo_decisions} | "
             f"Planner: {planner_decisions} | "
             f"Masks: {mask_count} | "
-            f"Mask Rate: {mask_rate:.2f} | "
-            f"Adherence: {adherence_rate:.2f} | "
-            f"Coverage: {coverage} | "
+            f"Masked Action Rate: {mask_rate:.2f} | "
+            f"Planner Adherence: {adherence_rate:.2f} | "
+            f"Unique Cells: {coverage} | "
             f"Success: {success_rate * 100:.1f}% | "
             f"Lambda: {lambda_val:.2f} | "
             f"SPS: {steps_per_sec:.2f} | "
@@ -622,15 +623,16 @@ def train_agent(
             "success": success_flags[i],
             "cost_sum": episode_costs[i],
             "steps": step_counts[i],
-            "coverage": coverage_log[i],
+            "unique_cells": coverage_log[i],
             "min_enemy_dist": min_dist_log[i],
-            "planner_adherence": adherence_rates[i],
-            "mask_rate": mask_rates[i],
-            "lambda": lambda_log[i],
+            "planner_adherence_pct": adherence_rates[i],
+            "masked_action_rate": mask_rates[i],
+            "lambda_lagrange": lambda_log[i],
             "wall_clock": wall_clock_times[i],
             "near_miss_count": near_miss_counts[i],
             "intrinsic_icm_sum": intrinsic_icm_sums[i],
             "intrinsic_rnd_sum": intrinsic_rnd_sums[i],
+            "intrinsic_spike_count": count_intrinsic_spikes(intrinsic_rewards[i]),
             "policy_entropy_mean": policy_entropy_means[i],
             "value_loss": value_losses[i],
             "kl_policy": kl_policies[i],

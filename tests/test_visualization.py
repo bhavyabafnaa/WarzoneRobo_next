@@ -101,19 +101,19 @@ def test_plot_ablation_radar(tmp_path):
         "baseline": {
             "Safety": [0.9, 0.8],
             "Reward": [100, 110],
-            "Coverage": [50, 55],
+            "Unique Cells": [50, 55],
             "Compute": [1.0, 1.1],
         },
         "no_icm": {
             "Safety": [0.7, 0.6],
             "Reward": [80, 90],
-            "Coverage": [40, 42],
+            "Unique Cells": [40, 42],
             "Compute": [0.9, 0.95],
         },
         "no_rnd": {
             "Safety": [0.75, 0.7],
             "Reward": [85, 88],
-            "Coverage": [45, 47],
+            "Unique Cells": [45, 47],
             "Compute": [0.85, 0.9],
         },
     }
@@ -125,7 +125,7 @@ def test_plot_ablation_radar(tmp_path):
                 "Setting": setting,
                 "Safety": np.mean(metrics["Safety"]),
                 "Reward": np.mean(metrics["Reward"]),
-                "Coverage": np.mean(metrics["Coverage"]),
+                "Unique Cells": np.mean(metrics["Unique Cells"]),
                 "Compute": np.mean(metrics["Compute"]),
             }
         )
