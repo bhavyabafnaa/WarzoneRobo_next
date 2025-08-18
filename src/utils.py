@@ -1,5 +1,5 @@
-import os
 from typing import Sequence
+import os
 
 import numpy as np
 import torch
