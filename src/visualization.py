@@ -77,6 +77,7 @@ def plot_training_curves(
     if output_path is not None:
         _save_fig(fig, output_path)
     plt.show()
+    plt.close(fig)
 
 
 def plot_coverage_heatmap(visit_counts: np.ndarray, output_path: str | None = None) -> None:
@@ -99,6 +100,7 @@ def plot_coverage_heatmap(visit_counts: np.ndarray, output_path: str | None = No
     if output_path is not None:
         _save_fig(fig, output_path)
     plt.show()
+    plt.close(fig)
 
 
 def plot_violation_rate(logs: list[list[float]] | None, output_path: str | None = None) -> None:
@@ -145,6 +147,7 @@ def plot_violation_rate(logs: list[list[float]] | None, output_path: str | None 
     if output_path is not None:
         _save_fig(fig, output_path)
     plt.show()
+    plt.close(fig)
 
 
 def plot_violation_comparison(
@@ -208,6 +211,7 @@ def plot_violation_comparison(
     if output_path is not None:
         _save_fig(fig, output_path)
     plt.show()
+    plt.close(fig)
 
 
 def plot_learning_panels(
@@ -273,6 +277,7 @@ def plot_learning_panels(
     if output_path is not None:
         _save_fig(fig, output_path)
     plt.show()
+    plt.close(fig)
 
 
 def plot_ablation_radar(metrics_df: pd.DataFrame, output_path: str | None = None) -> None:
@@ -323,6 +328,7 @@ def plot_ablation_radar(metrics_df: pd.DataFrame, output_path: str | None = None
     if output_path is not None:
         _save_fig(fig, output_path)
     plt.show()
+    plt.close(fig)
 
 
 def plot_pareto(
@@ -354,6 +360,7 @@ def plot_pareto(
     if output_path is not None:
         _save_fig(fig, output_path)
     plt.show()
+    plt.close(fig)
 
 
 def plot_heatmap_with_path(env, path, output_path: str | None = None):
@@ -381,6 +388,7 @@ def plot_heatmap_with_path(env, path, output_path: str | None = None):
     if output_path is not None:
         _save_fig(fig, output_path)
     plt.show()
+    plt.close(fig)
 
 
 def generate_results_table(df: pd.DataFrame, output_path: str) -> None:
