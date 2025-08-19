@@ -41,6 +41,11 @@ from src.pseudocount import PseudoCountExploration
 from src.planner import SymbolicPlanner
 from src.ppo import PPOPolicy, train_agent, get_beta_schedule
 from src.utils import save_model, count_intrinsic_spikes
+from src.safety import (
+    save_pareto_summaries,
+    save_violation_curves,
+    append_budget_sweep,
+)
 
 
 for d in ["videos", "results", "figures", "checkpoints"]:
@@ -840,7 +845,7 @@ def run(args):
     all_results = []
     all_bench = []
     pareto_metrics: dict[str, dict[str, list[float]]] = defaultdict(
-        lambda: {"rewards": [], "costs": []}
+        lambda: {"rewards": [], "costs": [], "violations": []}
     )
 
     for setting in settings:
@@ -2941,6 +2946,10 @@ def run(args):
                     flatten_metric(data["rewards"])
                 )
                 pareto_metrics[name]["costs"].extend(data["episode_costs"])
+                if data.get("violation_flags"):
+                    pareto_metrics[name]["violations"].extend(
+                        data["violation_flags"]
+                    )
 
         all_results.extend(results)
         all_bench.extend(bench_results)
@@ -2967,6 +2976,9 @@ def run(args):
             args.cost_limit,
             os.path.join(figure_dir, "pareto_all.pdf"),
         )
+    save_pareto_summaries(pareto_metrics, args.split)
+    append_budget_sweep(pareto_metrics, args.cost_limit)
+    save_violation_curves(curve_logs)
 
     df_train = pd.DataFrame(all_results)
     df_train["Model"] = df_train["Model"].replace(NAME_MAP)
