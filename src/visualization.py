@@ -38,12 +38,37 @@ def _save_fig(fig: plt.Figure, output_path: str) -> None:
     fig.savefig(path.with_suffix(".png"), format="png")
 
 
+def _finalize_fig(fig: plt.Figure, output_path: str | None, show: bool) -> None:
+    """Save, optionally display, and always close a figure.
+
+    Parameters
+    ----------
+    fig:
+        Figure to handle.
+    output_path:
+        If provided, location where the figure should be saved.
+    show:
+        Whether to call ``plt.show()``. When ``False`` the ``Agg`` backend is
+        used to avoid GUI requirements.
+    """
+
+    if not show:
+        plt.switch_backend("Agg")
+    if output_path is not None:
+        _save_fig(fig, output_path)
+    if show:
+        plt.show()
+    plt.close(fig)
+
+
 def plot_training_curves(
     metrics: dict[str, list[list[float]]],
     output_path: str | None = None,
+    show: bool = True,
 ) -> None:
     """Plot training metrics across seeds with 95% confidence intervals."""
-
+    if not show:
+        plt.switch_backend("Agg")
     sns.set(style="darkgrid")
     n_metrics = len(metrics)
     fig, axes = plt.subplots(1, n_metrics, figsize=(6 * n_metrics, 4))
@@ -74,15 +99,18 @@ def plot_training_curves(
         ax.set_title(name)
 
     plt.tight_layout()
-    if output_path is not None:
-        _save_fig(fig, output_path)
-    plt.show()
-    plt.close(fig)
+    _finalize_fig(fig, output_path, show)
 
 
-def plot_coverage_heatmap(visit_counts: np.ndarray, output_path: str | None = None) -> None:
+def plot_coverage_heatmap(
+    visit_counts: np.ndarray,
+    output_path: str | None = None,
+    show: bool = True,
+) -> None:
     """Visualize state visit frequencies as a normalized heatmap."""
 
+    if not show:
+        plt.switch_backend("Agg")
     data = np.asarray(visit_counts, dtype=float)
     if data.ndim != 2:
         raise ValueError("visit_counts must be a 2D array")
@@ -97,13 +125,14 @@ def plot_coverage_heatmap(visit_counts: np.ndarray, output_path: str | None = No
     ax.set_ylabel("X")
     plt.colorbar(im, ax=ax, fraction=0.046, pad=0.04)
     plt.tight_layout()
-    if output_path is not None:
-        _save_fig(fig, output_path)
-    plt.show()
-    plt.close(fig)
+    _finalize_fig(fig, output_path, show)
 
 
-def plot_violation_rate(logs: list[list[float]] | None, output_path: str | None = None) -> None:
+def plot_violation_rate(
+    logs: list[list[float]] | None,
+    output_path: str | None = None,
+    show: bool = True,
+) -> None:
     """Plot running constraint violation probability with 95% CIs.
 
     ``logs`` should be a list of episode-wise violation flags for each seed.
@@ -112,6 +141,8 @@ def plot_violation_rate(logs: list[list[float]] | None, output_path: str | None 
     shading across seeds.
     """
 
+    if not show:
+        plt.switch_backend("Agg")
     if not logs:
         return
     if logs and not isinstance(logs[0], (list, np.ndarray)):
@@ -144,14 +175,13 @@ def plot_violation_rate(logs: list[list[float]] | None, output_path: str | None 
     ax.set_title("Constraint Violation Rate")
 
     plt.tight_layout()
-    if output_path is not None:
-        _save_fig(fig, output_path)
-    plt.show()
-    plt.close(fig)
+    _finalize_fig(fig, output_path, show)
 
 
 def plot_violation_comparison(
-    method_logs: dict[str, list[list[float]]], output_path: str | None = None
+    method_logs: dict[str, list[list[float]]],
+    output_path: str | None = None,
+    show: bool = True,
 ) -> None:
     """Overlay mean violation rates with 95% CI bands for each method.
 
@@ -166,6 +196,8 @@ def plot_violation_comparison(
         from the extension and defaults to PDF.
     """
 
+    if not show:
+        plt.switch_backend("Agg")
     if not method_logs:
         return
 
@@ -208,15 +240,13 @@ def plot_violation_comparison(
     ax.legend()
 
     plt.tight_layout()
-    if output_path is not None:
-        _save_fig(fig, output_path)
-    plt.show()
-    plt.close(fig)
+    _finalize_fig(fig, output_path, show)
 
 
 def plot_learning_panels(
     metrics_dict: dict[str, dict[str, list[list[float]]]],
     output_path: str | None = None,
+    show: bool = True,
 ) -> None:
     """Plot learning curves for multiple methods and metrics.
 
@@ -226,6 +256,8 @@ def plot_learning_panels(
     95% confidence intervals across seeds.
     """
 
+    if not show:
+        plt.switch_backend("Agg")
     if not metrics_dict:
         return
 
@@ -274,13 +306,14 @@ def plot_learning_panels(
                 ax.set_title(metric)
 
     plt.tight_layout()
-    if output_path is not None:
-        _save_fig(fig, output_path)
-    plt.show()
-    plt.close(fig)
+    _finalize_fig(fig, output_path, show)
 
 
-def plot_ablation_radar(metrics_df: pd.DataFrame, output_path: str | None = None) -> None:
+def plot_ablation_radar(
+    metrics_df: pd.DataFrame,
+    output_path: str | None = None,
+    show: bool = True,
+) -> None:
     """Plot a radar chart comparing ablation metrics.
 
     The input DataFrame should contain a ``Setting`` column identifying each
@@ -290,6 +323,8 @@ def plot_ablation_radar(metrics_df: pd.DataFrame, output_path: str | None = None
     plotted on a polar (radar) chart.
     """
 
+    if not show:
+        plt.switch_backend("Agg")
     if metrics_df.empty:
         return
 
@@ -325,14 +360,14 @@ def plot_ablation_radar(metrics_df: pd.DataFrame, output_path: str | None = None
     ax.legend(loc="upper right", bbox_to_anchor=(1.1, 1.1))
 
     plt.tight_layout()
-    if output_path is not None:
-        _save_fig(fig, output_path)
-    plt.show()
-    plt.close(fig)
+    _finalize_fig(fig, output_path, show)
 
 
 def plot_pareto(
-    df: pd.DataFrame, cost_limit: float, output_path: str | None = None
+    df: pd.DataFrame,
+    cost_limit: float,
+    output_path: str | None = None,
+    show: bool = True,
 ) -> None:
     """Scatter mean reward vs. mean cost with 95% confidence intervals.
 
@@ -341,6 +376,8 @@ def plot_pareto(
     drawn to indicate the budget ``d``.
     """
 
+    if not show:
+        plt.switch_backend("Agg")
     sns.set(style="darkgrid")
     fig, ax = plt.subplots(figsize=(6, 4))
     for _, row in df.iterrows():
@@ -357,17 +394,21 @@ def plot_pareto(
     ax.set_ylabel("Mean Reward")
     ax.legend()
     plt.tight_layout()
-    if output_path is not None:
-        _save_fig(fig, output_path)
-    plt.show()
-    plt.close(fig)
+    _finalize_fig(fig, output_path, show)
 
 
-def plot_heatmap_with_path(env, path, output_path: str | None = None):
+def plot_heatmap_with_path(
+    env,
+    path,
+    output_path: str | None = None,
+    show: bool = True,
+):
     """Display cost and risk maps with an overlayed agent path.
 
     The goal position is no longer plotted.
     """
+    if not show:
+        plt.switch_backend("Agg")
     xs = [p[1] for p in path]
     ys = [p[0] for p in path]
 
@@ -385,10 +426,7 @@ def plot_heatmap_with_path(env, path, output_path: str | None = None):
         plt.colorbar(im, ax=ax, fraction=0.046, pad=0.04)
 
     plt.tight_layout()
-    if output_path is not None:
-        _save_fig(fig, output_path)
-    plt.show()
-    plt.close(fig)
+    _finalize_fig(fig, output_path, show)
 
 
 def generate_results_table(df: pd.DataFrame, output_path: str) -> None:
