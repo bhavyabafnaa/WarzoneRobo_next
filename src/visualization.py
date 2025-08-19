@@ -5,6 +5,7 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 import torch
 import imageio
+from pathlib import Path
 
 from .planner import SymbolicPlanner
 
@@ -18,6 +19,23 @@ def _stack_logs(logs: list[list[float]] | None, name: str) -> pd.DataFrame:
         frames.append(pd.DataFrame(
             {"Episode": np.arange(len(log)), name: log, "Seed": idx}))
     return pd.concat(frames, ignore_index=True)
+
+
+def _save_fig(fig: plt.Figure, output_path: str) -> None:
+    """Save figure to ``output_path`` and create a PNG preview.
+
+    The image format is inferred from the file extension. If no extension is
+    provided, the figure is saved as PDF. A separate PNG preview is always
+    written beside the main output.
+    """
+
+    path = Path(output_path)
+    os.makedirs(path.parent or ".", exist_ok=True)
+    ext = path.suffix.lower()
+    fmt = ext.lstrip(".") if ext else "pdf"
+    fig.savefig(path, format=fmt)
+    # Always generate a PNG preview
+    fig.savefig(path.with_suffix(".png"), format="png")
 
 
 def plot_training_curves(
@@ -57,10 +75,7 @@ def plot_training_curves(
 
     plt.tight_layout()
     if output_path is not None:
-        os.makedirs(os.path.dirname(output_path) or ".", exist_ok=True)
-        ext = os.path.splitext(output_path)[1].lower()
-        fmt = "svg" if ext == ".svg" else "pdf"
-        plt.savefig(output_path, format=fmt)
+        _save_fig(fig, output_path)
     plt.show()
 
 
@@ -82,10 +97,7 @@ def plot_coverage_heatmap(visit_counts: np.ndarray, output_path: str | None = No
     plt.colorbar(im, ax=ax, fraction=0.046, pad=0.04)
     plt.tight_layout()
     if output_path is not None:
-        os.makedirs(os.path.dirname(output_path) or ".", exist_ok=True)
-        ext = os.path.splitext(output_path)[1].lower()
-        fmt = "svg" if ext == ".svg" else "pdf"
-        plt.savefig(output_path, format=fmt)
+        _save_fig(fig, output_path)
     plt.show()
 
 
@@ -131,10 +143,7 @@ def plot_violation_rate(logs: list[list[float]] | None, output_path: str | None 
 
     plt.tight_layout()
     if output_path is not None:
-        os.makedirs(os.path.dirname(output_path) or ".", exist_ok=True)
-        ext = os.path.splitext(output_path)[1].lower()
-        fmt = "svg" if ext == ".svg" else "pdf"
-        plt.savefig(output_path, format=fmt)
+        _save_fig(fig, output_path)
     plt.show()
 
 
@@ -197,10 +206,7 @@ def plot_violation_comparison(
 
     plt.tight_layout()
     if output_path is not None:
-        os.makedirs(os.path.dirname(output_path) or ".", exist_ok=True)
-        ext = os.path.splitext(output_path)[1].lower()
-        fmt = "svg" if ext == ".svg" else "pdf"
-        plt.savefig(output_path, format=fmt)
+        _save_fig(fig, output_path)
     plt.show()
 
 
@@ -265,10 +271,7 @@ def plot_learning_panels(
 
     plt.tight_layout()
     if output_path is not None:
-        os.makedirs(os.path.dirname(output_path) or ".", exist_ok=True)
-        ext = os.path.splitext(output_path)[1].lower()
-        fmt = "svg" if ext == ".svg" else "pdf"
-        plt.savefig(output_path, format=fmt)
+        _save_fig(fig, output_path)
     plt.show()
 
 
@@ -318,10 +321,7 @@ def plot_ablation_radar(metrics_df: pd.DataFrame, output_path: str | None = None
 
     plt.tight_layout()
     if output_path is not None:
-        os.makedirs(os.path.dirname(output_path) or ".", exist_ok=True)
-        ext = os.path.splitext(output_path)[1].lower()
-        fmt = "svg" if ext == ".svg" else "pdf"
-        plt.savefig(output_path, format=fmt)
+        _save_fig(fig, output_path)
     plt.show()
 
 
@@ -352,10 +352,7 @@ def plot_pareto(
     ax.legend()
     plt.tight_layout()
     if output_path is not None:
-        os.makedirs(os.path.dirname(output_path) or ".", exist_ok=True)
-        ext = os.path.splitext(output_path)[1].lower()
-        fmt = "svg" if ext == ".svg" else "pdf"
-        plt.savefig(output_path, format=fmt)
+        _save_fig(fig, output_path)
     plt.show()
 
 
@@ -382,10 +379,7 @@ def plot_heatmap_with_path(env, path, output_path: str | None = None):
 
     plt.tight_layout()
     if output_path is not None:
-        os.makedirs(os.path.dirname(output_path) or ".", exist_ok=True)
-        ext = os.path.splitext(output_path)[1].lower()
-        fmt = "svg" if ext == ".svg" else "pdf"
-        plt.savefig(output_path, format=fmt)
+        _save_fig(fig, output_path)
     plt.show()
 
 
