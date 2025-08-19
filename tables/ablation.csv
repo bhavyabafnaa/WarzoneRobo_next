@@ -1,0 +1,12 @@
+Model,Δ no_icm,Δ no_rnd,Δ no_planner
+PPO,0.0,0.0,0.0
+PPO+ICM,,0.0,0.0
+PPO+RND,0.5032407680351731,,-0.335464601197339
+Count,-0.04680329517705495,0.0,0.1028100656826556
+PC,0.2034224163436118,0.0,0.0
+LPPO,,,
+Shielded-PPO,,,
+Planner-only,,,
+Planner-Subgoal PPO,,,
+Dyna-PPO(1),,,
+Hybrid PPO+ICM+Planner,,0.0,

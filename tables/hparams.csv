@@ -1,0 +1,7 @@
+Parameter,Value
+ICM β initial,0.1
+ICM β final,0.01
+LPPO ηλ,0.05
+Shield τ,0.7
+Shield κ,4.0
+Planner horizon,10.0
