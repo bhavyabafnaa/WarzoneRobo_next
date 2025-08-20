@@ -1,4 +1,5 @@
 import os
+import argparse
 from pathlib import Path
 
 import numpy as np
@@ -36,9 +37,9 @@ def _prep_df(df: pd.DataFrame, mean_col: str, std_col: str, n: int) -> pd.DataFr
     return build_main_table(out)
 
 
-def main() -> None:
-    tables_dir = Path("tables")
-    tables_dir.mkdir(exist_ok=True)
+def main(output_dir: str | Path = Path("tables")) -> None:
+    tables_dir = Path(output_dir)
+    tables_dir.mkdir(parents=True, exist_ok=True)
 
     # === Main results table ===
     train_path = Path("results/training_results.csv")
@@ -105,4 +106,7 @@ def main() -> None:
 
 
 if __name__ == "__main__":
-    main()
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--output-dir", type=str, default="tables")
+    args = parser.parse_args()
+    main(args.output_dir)

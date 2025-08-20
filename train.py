@@ -8,6 +8,8 @@ import torch.optim as optim
 import pandas as pd
 import numpy as np
 import time
+import subprocess
+from pathlib import Path
 from scipy import stats
 from scipy.stats import (
     ttest_rel,
@@ -723,6 +725,11 @@ def parse_args(arg_list: list[str] | None = None):
         help="Directory to save training plots",
     )
     parser.add_argument(
+        "--postprocess",
+        action="store_true",
+        help="Generate figures and tables after training",
+    )
+    parser.add_argument(
         "--stat-test",
         choices=["paired", "welch", "mannwhitney", "anova", "friedman"],
         default="paired",
@@ -803,9 +810,17 @@ def run(args):
     if args.seeds:
         seeds = args.seeds
         if len(seeds) == 1:
-            seeds = range(seeds[0])
+            seeds = list(range(seeds[0]))
+        else:
+            seeds = list(seeds)
     else:
         seeds = [args.seed]
+
+    algo_name = Path(args.algo_config).stem if args.algo_config else "default"
+    if len(seeds) == 1:
+        seed_key = f"seed_{seeds[0]}"
+    else:
+        seed_key = f"seeds_{seeds[0]}-{seeds[-1]}"
 
     env = GridWorldICM(
         grid_size=grid_size,
@@ -3029,6 +3044,20 @@ def run(args):
         df_bench = pd.DataFrame(all_bench)
         generate_results_table(
             df_bench, os.path.join(result_dir, "benchmark_results.html")
+        )
+
+    if args.postprocess:
+        fig_out = Path("figures") / algo_name / seed_key
+        table_out = Path("tables") / algo_name / seed_key
+        fig_out.mkdir(parents=True, exist_ok=True)
+        table_out.mkdir(parents=True, exist_ok=True)
+        subprocess.run(
+            [sys.executable, "generate_figures.py", "--output-dir", str(fig_out)],
+            check=True,
+        )
+        subprocess.run(
+            [sys.executable, "generate_tables.py", "--output-dir", str(table_out)],
+            check=True,
         )
 
     if args.log_backend == "tensorboard" and logger is not None:
