@@ -1,6 +1,7 @@
 import os
 import warnings
 import argparse
+import sys
 import yaml
 import torch
 import torch.optim as optim
@@ -631,6 +632,11 @@ def parse_args(arg_list: list[str] | None = None):
         nargs="+",
         default=[10],
         help="List of seeds or single integer count",
+    )
+    parser.add_argument(
+        "--all-algos",
+        action="store_true",
+        help="Run all algorithm configs found in configs/algo/",
     )
     parser.add_argument(
         "--disable_icm",
@@ -3032,12 +3038,40 @@ def run(args):
 
 
 if __name__ == "__main__":
-    base_args = parse_args()
-    for budget in [0.05, 0.10]:
-        for dyn_risk in [False, True]:
-            for dyn_cost in [False, True]:
-                args = argparse.Namespace(**vars(base_args))
-                args.cost_limit = budget
-                args.dynamic_risk = dyn_risk
-                args.dynamic_cost = dyn_cost
-                run(args)
+    cli_args = sys.argv[1:]
+    base_args = parse_args(cli_args)
+
+    def run_with_budgets(args: argparse.Namespace) -> None:
+        for budget in [0.05, 0.10]:
+            for dyn_risk in [False, True]:
+                for dyn_cost in [False, True]:
+                    run_args = argparse.Namespace(**vars(args))
+                    run_args.cost_limit = budget
+                    run_args.dynamic_risk = dyn_risk
+                    run_args.dynamic_cost = dyn_cost
+                    run(run_args)
+
+    if base_args.all_algos:
+        import glob
+
+        algo_files = sorted(
+            glob.glob(os.path.join("configs", "algo", "*.yml"))
+            + glob.glob(os.path.join("configs", "algo", "*.yaml"))
+        )
+        cleaned: list[str] = []
+        skip = False
+        for a in cli_args:
+            if skip:
+                skip = False
+                continue
+            if a == "--algo-config":
+                skip = True
+                continue
+            if a.startswith("--algo-config=") or a == "--all-algos":
+                continue
+            cleaned.append(a)
+        for algo_cfg in algo_files:
+            algo_args = parse_args(cleaned + ["--algo-config", algo_cfg])
+            run_with_budgets(algo_args)
+    else:
+        run_with_budgets(base_args)
