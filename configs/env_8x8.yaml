@@ -1,0 +1,9 @@
+grid_size: 8
+survival_reward: 0.05
+dynamic_risk: true
+dynamic_cost: true
+add_noise: false
+mine_density_range: [0.03, 0.10]
+hazard_density_range: [0.0, 0.2]
+enemy_speed_range: [1, 2]
+enemy_policies: ["random", "aggressive", "stationary"]
