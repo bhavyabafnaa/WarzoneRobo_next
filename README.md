@@ -180,3 +180,6 @@ docker run --rm warzonerobo python train.py --config configs/default.yaml
 
 Checkpoints are saved under `checkpoints/` and benchmark tables under
 `results/` within the repository.
+
+The root `manifest.txt` records the output of `git rev-parse HEAD` so you can
+confirm the exact code revision used for these experiments.
