@@ -3,3 +3,7 @@ __pycache__/
 *.pyc
 *.pyo
 *~
+
+# Qualitative outputs
+qualitative/*.mp4
+qualitative/*.pdf
