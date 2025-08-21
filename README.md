@@ -160,6 +160,16 @@ maps in a consistent order with:
 Both scripts iterate deterministically so repeated invocations yield comparable
 results.
 
+Run the entire experiment suite with all algorithms, five random seeds and
+ablation settings by calling:
+
+```bash
+./scripts/full_experiment.sh
+```
+
+The script logs success or failure for the training run and, when successful,
+invokes evaluation and summary steps such as figure and table generation.
+
 ## Running Tests
 Execute the unit tests with:
 ```bash
