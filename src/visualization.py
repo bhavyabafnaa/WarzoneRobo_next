@@ -9,6 +9,8 @@ from pathlib import Path
 
 from .planner import SymbolicPlanner
 
+plt.switch_backend("Agg")
+
 
 def _stack_logs(logs: list[list[float]] | None, name: str) -> pd.DataFrame:
     """Convert a list of episode logs into a long-form DataFrame."""
@@ -22,53 +24,29 @@ def _stack_logs(logs: list[list[float]] | None, name: str) -> pd.DataFrame:
 
 
 def _save_fig(fig: plt.Figure, output_path: str) -> None:
-    """Save figure to ``output_path`` and create a PNG preview.
-
-    The image format is inferred from the file extension. If no extension is
-    provided, the figure is saved as PDF. A separate PNG preview is always
-    written beside the main output.
-    """
+    """Save figure to ``output_path`` as a PDF."""
 
     path = Path(output_path)
     os.makedirs(path.parent or ".", exist_ok=True)
-    ext = path.suffix.lower()
-    fmt = ext.lstrip(".") if ext else "pdf"
-    fig.savefig(path, format=fmt)
-    # Always generate a PNG preview
-    fig.savefig(path.with_suffix(".png"), format="png")
+    if path.suffix.lower() != ".pdf":
+        path = path.with_suffix(".pdf")
+    fig.savefig(path, format="pdf")
 
 
-def _finalize_fig(fig: plt.Figure, output_path: str | None, show: bool) -> None:
-    """Save, optionally display, and always close a figure.
+def _finalize_fig(fig: plt.Figure, output_path: str | None, show: bool = False) -> None:
+    """Save and close a figure."""
 
-    Parameters
-    ----------
-    fig:
-        Figure to handle.
-    output_path:
-        If provided, location where the figure should be saved.
-    show:
-        Whether to call ``plt.show()``. When ``False`` the ``Agg`` backend is
-        used to avoid GUI requirements.
-    """
-
-    if not show:
-        plt.switch_backend("Agg")
     if output_path is not None:
         _save_fig(fig, output_path)
-    if show:
-        plt.show()
     plt.close(fig)
 
 
 def plot_training_curves(
     metrics: dict[str, list[list[float]]],
     output_path: str | None = None,
-    show: bool = True,
+    show: bool = False,
 ) -> None:
     """Plot training metrics across seeds with 95% confidence intervals."""
-    if not show:
-        plt.switch_backend("Agg")
     sns.set(style="darkgrid")
     n_metrics = len(metrics)
     fig, axes = plt.subplots(1, n_metrics, figsize=(6 * n_metrics, 4))
@@ -105,12 +83,9 @@ def plot_training_curves(
 def plot_coverage_heatmap(
     visit_counts: np.ndarray,
     output_path: str | None = None,
-    show: bool = True,
+    show: bool = False,
 ) -> None:
     """Visualize state visit frequencies as a normalized heatmap."""
-
-    if not show:
-        plt.switch_backend("Agg")
     data = np.asarray(visit_counts, dtype=float)
     if data.ndim != 2:
         raise ValueError("visit_counts must be a 2D array")
@@ -131,7 +106,7 @@ def plot_coverage_heatmap(
 def plot_violation_rate(
     logs: list[list[float]] | None,
     output_path: str | None = None,
-    show: bool = True,
+    show: bool = False,
 ) -> None:
     """Plot running constraint violation probability with 95% CIs.
 
@@ -141,8 +116,6 @@ def plot_violation_rate(
     shading across seeds.
     """
 
-    if not show:
-        plt.switch_backend("Agg")
     if not logs:
         return
     if logs and not isinstance(logs[0], (list, np.ndarray)):
@@ -181,7 +154,7 @@ def plot_violation_rate(
 def plot_violation_comparison(
     method_logs: dict[str, list[list[float]]],
     output_path: str | None = None,
-    show: bool = True,
+    show: bool = False,
 ) -> None:
     """Overlay mean violation rates with 95% CI bands for each method.
 
@@ -196,8 +169,6 @@ def plot_violation_comparison(
         from the extension and defaults to PDF.
     """
 
-    if not show:
-        plt.switch_backend("Agg")
     if not method_logs:
         return
 
@@ -246,7 +217,7 @@ def plot_violation_comparison(
 def plot_learning_panels(
     metrics_dict: dict[str, dict[str, list[list[float]]]],
     output_path: str | None = None,
-    show: bool = True,
+    show: bool = False,
 ) -> None:
     """Plot learning curves for multiple methods and metrics.
 
@@ -256,8 +227,6 @@ def plot_learning_panels(
     95% confidence intervals across seeds.
     """
 
-    if not show:
-        plt.switch_backend("Agg")
     if not metrics_dict:
         return
 
@@ -312,7 +281,7 @@ def plot_learning_panels(
 def plot_ablation_radar(
     metrics_df: pd.DataFrame,
     output_path: str | None = None,
-    show: bool = True,
+    show: bool = False,
 ) -> None:
     """Plot a radar chart comparing ablation metrics.
 
@@ -323,8 +292,6 @@ def plot_ablation_radar(
     plotted on a polar (radar) chart.
     """
 
-    if not show:
-        plt.switch_backend("Agg")
     if metrics_df.empty:
         return
 
@@ -367,7 +334,7 @@ def plot_pareto(
     df: pd.DataFrame,
     cost_limit: float,
     output_path: str | None = None,
-    show: bool = True,
+    show: bool = False,
 ) -> None:
     """Scatter mean reward vs. mean cost with 95% confidence intervals.
 
@@ -376,8 +343,6 @@ def plot_pareto(
     drawn to indicate the budget ``d``.
     """
 
-    if not show:
-        plt.switch_backend("Agg")
     sns.set(style="darkgrid")
     fig, ax = plt.subplots(figsize=(6, 4))
     for _, row in df.iterrows():
@@ -401,14 +366,12 @@ def plot_heatmap_with_path(
     env,
     path,
     output_path: str | None = None,
-    show: bool = True,
+    show: bool = False,
 ):
     """Display cost and risk maps with an overlayed agent path.
 
     The goal position is no longer plotted.
     """
-    if not show:
-        plt.switch_backend("Agg")
     xs = [p[1] for p in path]
     ys = [p[0] for p in path]
 
