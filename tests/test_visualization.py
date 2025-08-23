@@ -1,3 +1,4 @@
+import os
 import numpy as np
 import pandas as pd
 import pytest
@@ -19,9 +20,13 @@ from src.visualization import (
 def test_render_episode_video(tmp_path):
     env = GridWorldICM(grid_size=4, max_steps=5)
     policy = PPOPolicy(4 * env.grid_size * env.grid_size + 2, 4)
-    output = tmp_path / "episode.gif"
-    render_episode_video(env, policy, str(output), max_steps=2, seed=0)
-    assert output.exists()
+    cwd = os.getcwd()
+    os.chdir(tmp_path)
+    try:
+        render_episode_video(env, policy, "episode.gif", max_steps=2, seed=0)
+        assert (tmp_path / "videos" / "episode.gif").exists()
+    finally:
+        os.chdir(cwd)
 
 
 def test_plot_pareto(tmp_path):
