@@ -418,14 +418,15 @@ def visualize_paths_on_benchmark_maps(
         ax.axis("off")
 
         if save:
-            plt.savefig(f"benchmark_visuals/map_{i:02d}.png")
+            output_dir = os.path.join("figures", "benchmark_visuals")
+            os.makedirs(output_dir, exist_ok=True)
+            plt.savefig(os.path.join(output_dir, f"map_{i:02d}.pdf"))
 
     for j in range(num_maps, len(axs)):
         axs[j].axis("off")
 
     plt.tight_layout()
     plt.suptitle("Reward-Weighted Agent Paths", fontsize=16, y=1.02)
-    plt.show()
 
 
 def export_benchmark_maps(
