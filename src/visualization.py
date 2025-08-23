@@ -487,7 +487,11 @@ def render_episode_video(
         frames.append(env.render())
         step += 1
 
-    os.makedirs(os.path.dirname(output_path) or ".", exist_ok=True)
+    path = Path(output_path)
+    if path.parent == Path('.'):
+        path = Path("videos") / path
+    assert path.suffix.lower() == ".gif", "output_path must end with .gif"
+    path.parent.mkdir(parents=True, exist_ok=True)
     fps = 5
     duration = int(1000 / fps)
-    imageio.mimsave(output_path, frames, duration=duration)
+    imageio.mimsave(path, frames, duration=duration)
