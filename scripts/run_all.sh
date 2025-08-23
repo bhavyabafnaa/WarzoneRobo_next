@@ -39,7 +39,7 @@ done
 # Optionally generate summary figures/tables after all runs
 if [[ "${POSTPROCESS:-0}" -eq 1 ]]; then
   # Force a non-interactive backend so the script doesn't block waiting for GUI
-  # windows to be closed.
+  # windows to be closed for any Matplotlib usage.
   MPLBACKEND=Agg python generate_figures.py
-  python generate_tables.py
+  MPLBACKEND=Agg python generate_tables.py
 fi
