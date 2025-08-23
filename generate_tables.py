@@ -37,9 +37,9 @@ def _prep_df(df: pd.DataFrame, mean_col: str, std_col: str, n: int) -> pd.DataFr
     return build_main_table(out)
 
 
-def main(output_dir: str | Path = Path("tables")) -> None:
-    tables_dir = Path(output_dir)
-    tables_dir.mkdir(parents=True, exist_ok=True)
+def main(output_dir: str | Path = Path("results")) -> None:
+    results_dir = Path(output_dir)
+    results_dir.mkdir(parents=True, exist_ok=True)
 
     # === Main results table ===
     train_path = Path("results/training_results.csv")
@@ -66,7 +66,7 @@ def main(output_dir: str | Path = Path("tables")) -> None:
         df_ood["OOD Reward (±CI)"] = np.nan
 
         df_main = df_train.merge(df_test, on="Model", how="outer").merge(df_ood, on="Model", how="left")
-        generate_results_table(df_main, str(tables_dir / "main_results.tex"))
+        generate_results_table(df_main, str(results_dir / "main_results.tex"))
 
     # === Ablation table ===
     if train_path.exists():
@@ -78,7 +78,7 @@ def main(output_dir: str | Path = Path("tables")) -> None:
             ablated = df_raw[df_raw["Setting"] == setting].set_index("Model")
             delta = ablated["Train Reward Mean"] - baseline["Train Reward Mean"]
             table[f"Δ {setting}"] = table["Model"].map(delta)
-        generate_results_table(table, str(tables_dir / "ablation.tex"))
+        generate_results_table(table, str(results_dir / "ablation.tex"))
 
     # === Hyperparameter table ===
     cfg = yaml.safe_load(Path("configs/default.yaml").read_text())
@@ -102,11 +102,11 @@ def main(output_dir: str | Path = Path("tables")) -> None:
             ],
         }
     )
-    generate_results_table(hparams, str(tables_dir / "hparams.tex"))
+    generate_results_table(hparams, str(results_dir / "hparams.tex"))
 
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("--output-dir", type=str, default="tables")
+    parser.add_argument("--output-dir", type=str, default="results")
     args = parser.parse_args()
     main(args.output_dir)
