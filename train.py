@@ -1254,6 +1254,7 @@ def run(args):
             print("Training PPO Only")
             ppo_policy = PPOPolicy(input_dim, action_dim)
             opt_ppo = optim.Adam(ppo_policy.parameters(), lr=args.learning_rate)
+            episode_data_ppo_only = None
             (
                 rewards_ppo_only,
                 intrinsic_ppo_only,
@@ -1313,7 +1314,8 @@ def run(args):
                 danger_distance=args.danger_distance,
                 map_id=env.map_id,
             )
-            save_episode_metrics("PPO Only", run_seed, args.split, episode_data_ppo_only)
+            if episode_data_ppo_only is not None:
+                save_episode_metrics("PPO Only", run_seed, args.split, episode_data_ppo_only)
             metrics["PPO Only"]["auc_reward"].append(
                 compute_auc_reward(rewards_ppo_only)
             )
@@ -1389,6 +1391,7 @@ def run(args):
             print("Training LPPO")
             lppo_policy = PPOPolicy(input_dim, action_dim)
             opt_lppo = optim.Adam(lppo_policy.parameters(), lr=args.learning_rate)
+            episode_data_lppo = None
             (
                 rewards_lppo,
                 intrinsic_lppo,
@@ -1448,7 +1451,8 @@ def run(args):
                 danger_distance=args.danger_distance,
                 map_id=env.map_id,
             )
-            save_episode_metrics("LPPO", run_seed, args.split, episode_data_lppo)
+            if episode_data_lppo is not None:
+                save_episode_metrics("LPPO", run_seed, args.split, episode_data_lppo)
             metrics["LPPO"]["auc_reward"].append(
                 compute_auc_reward(rewards_lppo)
             )
@@ -1507,6 +1511,7 @@ def run(args):
             print("Training Shielded-PPO")
             shield_policy = PPOPolicy(input_dim, action_dim)
             opt_shield = optim.Adam(shield_policy.parameters(), lr=args.learning_rate)
+            episode_data_shield = None
             (
                 rewards_shield,
                 intrinsic_shield,
@@ -1566,7 +1571,8 @@ def run(args):
                 danger_distance=args.danger_distance,
                 map_id=env.map_id,
             )
-            save_episode_metrics("Shielded-PPO", run_seed, args.split, episode_data_shield)
+            if episode_data_shield is not None:
+                save_episode_metrics("Shielded-PPO", run_seed, args.split, episode_data_shield)
             metrics["Shielded-PPO"]["auc_reward"].append(
                 compute_auc_reward(rewards_shield)
             )
@@ -1699,6 +1705,7 @@ def run(args):
             print("Training Planner-Subgoal PPO")
             subgoal_policy = PPOPolicy(input_dim, action_dim)
             opt_subgoal = optim.Adam(subgoal_policy.parameters(), lr=args.learning_rate)
+            episode_data_subgoal = None
             (
                 rewards_subgoal,
                 intrinsic_subgoal,
@@ -1758,7 +1765,8 @@ def run(args):
                 danger_distance=args.danger_distance,
                 map_id=env.map_id,
             )
-            save_episode_metrics("Planner-Subgoal PPO", run_seed, args.split, episode_data_subgoal)
+            if episode_data_subgoal is not None:
+                save_episode_metrics("Planner-Subgoal PPO", run_seed, args.split, episode_data_subgoal)
             metrics["Planner-Subgoal PPO"]["auc_reward"].append(
                 compute_auc_reward(rewards_subgoal)
             )
@@ -1817,6 +1825,7 @@ def run(args):
             print("Training Dyna-PPO(1)")
             dyna_policy = PPOPolicy(input_dim, action_dim)
             opt_dyna = optim.Adam(dyna_policy.parameters(), lr=args.learning_rate)
+            episode_data_dyna = None
             (
                 rewards_dyna,
                 intrinsic_dyna,
@@ -1876,7 +1885,8 @@ def run(args):
                 danger_distance=args.danger_distance,
                 map_id=env.map_id,
             )
-            save_episode_metrics("Dyna-PPO(1)", run_seed, args.split, episode_data_dyna)
+            if episode_data_dyna is not None:
+                save_episode_metrics("Dyna-PPO(1)", run_seed, args.split, episode_data_dyna)
             metrics["Dyna-PPO(1)"]["auc_reward"].append(
                 compute_auc_reward(rewards_dyna)
             )
@@ -1937,15 +1947,16 @@ def run(args):
                 ppo_icm_policy = PPOPolicy(input_dim, action_dim)
                 opt_icm_policy = optim.Adam(
                     ppo_icm_policy.parameters(), lr=args.learning_rate)
-                (
-                    rewards_ppo_icm,
-                    intrinsic_icm,
-                    _,
-                    _,
-                    paths_icm,
-                    _,
-                    success_icm,
-                    planner_rate_icm,
+            episode_data_icm = None
+            (
+                rewards_ppo_icm,
+                intrinsic_icm,
+                _,
+                _,
+                paths_icm,
+                _,
+                success_icm,
+                planner_rate_icm,
                 mask_counts_icm,
                 mask_rates_icm,
                 adherence_rates_icm,
@@ -1996,7 +2007,8 @@ def run(args):
                     danger_distance=args.danger_distance,
                     map_id=env.map_id,
                 )
-            save_episode_metrics("PPO + ICM", run_seed, args.split, episode_data_icm)
+            if episode_data_icm is not None:
+                save_episode_metrics("PPO + ICM", run_seed, args.split, episode_data_icm)
             metrics["PPO + ICM"]["auc_reward"].append(
                 compute_auc_reward(rewards_ppo_icm)
             )
@@ -2076,6 +2088,7 @@ def run(args):
             ppo_pc_policy = PPOPolicy(input_dim, action_dim)
             opt_pc_policy = optim.Adam(ppo_pc_policy.parameters(), lr=args.learning_rate)
             pseudo = PseudoCountExploration()
+            episode_data_pc = None
             (
                 rewards_pc,
                 intrinsic_pc,
@@ -2135,7 +2148,8 @@ def run(args):
                 danger_distance=args.danger_distance,
                 map_id=env.map_id,
             )
-            save_episode_metrics("PPO + PC", run_seed, args.split, episode_data_pc)
+            if episode_data_pc is not None:
+                save_episode_metrics("PPO + PC", run_seed, args.split, episode_data_pc)
             metrics["PPO + PC"]["auc_reward"].append(
                 compute_auc_reward(rewards_pc)
             )
@@ -2213,6 +2227,7 @@ def run(args):
                 ppo_icm_planner_policy = PPOPolicy(input_dim, action_dim)
                 opt_plan_policy = optim.Adam(
                     ppo_icm_planner_policy.parameters(), lr=args.learning_rate)
+                episode_data_icm_plan = None
                 (
                     rewards_ppo_icm_plan,
                     intrinsic_plan,
@@ -2272,7 +2287,10 @@ def run(args):
                     danger_distance=args.danger_distance,
                     map_id=env.map_id,
                 )
-                save_episode_metrics("PPO + ICM + Planner", run_seed, args.split, episode_data_icm_plan)
+                if episode_data_icm_plan is not None:
+                    save_episode_metrics(
+                        "PPO + ICM + Planner", run_seed, args.split, episode_data_icm_plan
+                    )
                 metrics["PPO + ICM + Planner"]["auc_reward"].append(
                     compute_auc_reward(rewards_ppo_icm_plan)
                 )
@@ -2369,6 +2387,7 @@ def run(args):
             ppo_count_policy = PPOPolicy(input_dim, action_dim)
             opt_count_policy = optim.Adam(
                 ppo_count_policy.parameters(), lr=args.learning_rate)
+            episode_data_count = None
             (
                 rewards_ppo_count,
                 intrinsic_count,
@@ -2427,7 +2446,8 @@ def run(args):
                 danger_distance=args.danger_distance,
                 map_id=env.map_id,
             )
-            save_episode_metrics("PPO + count", run_seed, args.split, episode_data_count)
+            if episode_data_count is not None:
+                save_episode_metrics("PPO + count", run_seed, args.split, episode_data_count)
             metrics["PPO + count"]["auc_reward"].append(
                 compute_auc_reward(rewards_ppo_count)
             )
@@ -2507,6 +2527,7 @@ def run(args):
                     ppo_rnd_policy.parameters(), lr=args.learning_rate)
                 rnd = RNDModule(input_dim)
                 opt_rnd = optim.Adam(rnd.predictor.parameters(), lr=1e-3)
+                episode_data_rnd = None
                 (
                     rewards_ppo_rnd,
                     intrinsic_rnd,
@@ -2566,7 +2587,8 @@ def run(args):
                     danger_distance=args.danger_distance,
                     map_id=env.map_id,
                 )
-                save_episode_metrics("PPO + RND", run_seed, args.split, episode_data_rnd)
+                if episode_data_rnd is not None:
+                    save_episode_metrics("PPO + RND", run_seed, args.split, episode_data_rnd)
                 metrics["PPO + RND"]["auc_reward"].append(
                     compute_auc_reward(rewards_ppo_rnd)
                 )

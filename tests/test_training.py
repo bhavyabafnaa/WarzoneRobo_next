@@ -414,6 +414,14 @@ def test_episode_near_miss_logging(tmp_path, monkeypatch):
     assert df["intrinsic_spike_count"].tolist() == [0]
 
 
+def test_save_episode_metrics_skipped_on_none(tmp_path, monkeypatch):
+    monkeypatch.chdir(tmp_path)
+    episode_data = None
+    if episode_data is not None:
+        save_episode_metrics("test", 0, "train", episode_data)
+    assert not os.path.exists("results/episodes/test__seed0__split-train.csv")
+
+
 def test_world_model_not_instantiated(monkeypatch):
     def fail_wm_init(*args, **kwargs):
         raise AssertionError("WorldModel should not be created")
