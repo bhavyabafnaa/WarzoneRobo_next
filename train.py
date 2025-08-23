@@ -3070,7 +3070,7 @@ def run(args):
 
     if args.postprocess:
         fig_out = Path("figures") / algo_name / seed_key
-        table_out = Path("tables") / algo_name / seed_key
+        table_out = Path("results") / algo_name / seed_key
         fig_out.mkdir(parents=True, exist_ok=True)
         table_out.mkdir(parents=True, exist_ok=True)
         subprocess.run(
