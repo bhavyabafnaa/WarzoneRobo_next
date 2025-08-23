@@ -23,14 +23,27 @@ def _stack_logs(logs: list[list[float]] | None, name: str) -> pd.DataFrame:
     return pd.concat(frames, ignore_index=True)
 
 
-def _save_fig(fig: plt.Figure, output_path: str) -> None:
-    """Save figure to ``output_path`` as a PDF."""
+def _save_fig(fig: plt.Figure, output_path: str, also_png: bool = False) -> None:
+    """Save ``fig`` to ``output_path`` as a PDF.
+
+    Parameters
+    ----------
+    fig:
+        The Matplotlib figure to save.
+    output_path:
+        Destination file path. The ``.pdf`` suffix is enforced.
+    also_png:
+        If ``True``, additionally write a ``.png`` version. Defaults to ``False``
+        to avoid the extra work unless explicitly requested.
+    """
 
     path = Path(output_path)
     os.makedirs(path.parent or ".", exist_ok=True)
     if path.suffix.lower() != ".pdf":
         path = path.with_suffix(".pdf")
     fig.savefig(path, format="pdf")
+    if also_png:
+        fig.savefig(path.with_suffix(".png"), format="png")
 
 
 def _finalize_fig(fig: plt.Figure, output_path: str | None, show: bool = False) -> None:
