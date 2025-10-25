@@ -16,6 +16,12 @@ def save_model(policy, path, icm=None, rnd=None):
     torch.save(checkpoint, path)
 
 
+def get_checkpoint_path(method: str, seed: int, best: bool = False) -> str:
+    """Return the standardized checkpoint path for ``method`` and ``seed``."""
+    fname = "best.pt" if best else "final.pt"
+    return os.path.join("checkpoints", method, f"seed{seed}", fname)
+
+
 def load_model(
         policy_class,
         input_dim,
@@ -24,7 +30,11 @@ def load_model(
         icm_class=None,
         rnd_class=None,
         device=None):
-    """Load policy and exploration modules from checkpoint."""
+    """Load policy and exploration modules from a checkpoint path.
+
+    Paths now follow the pattern ``checkpoints/<method>/seed<k>/final.pt`` or
+    ``best.pt``.
+    """
     checkpoint = torch.load(path, map_location=device)
     policy = policy_class(input_dim, action_dim)
     policy.load_state_dict(checkpoint["policy"])

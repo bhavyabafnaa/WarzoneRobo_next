@@ -117,7 +117,7 @@ Train all models from a configuration file:
 ```bash
 python train.py --config configs/default.yaml
 ```
-Checkpoints are saved under `checkpoints/`, episode videos under `videos/`, and result tables under `results/`. GIF files use the active setting as a prefix, for example `baseline_ppo_only_0.gif`. Hyperparameters such as planner weights (`cost_weight`, `risk_weight`, etc.) can be edited in the YAML file or passed as command-line flags. The `seed` value in `configs/default.yaml` initializes both NumPy and PyTorch and turns on deterministic CuDNN settings so runs are reproducible.
+Checkpoints are organized by method and seed under `checkpoints/<method>/seed<k>/`. Each seed directory contains `final.pt` and, when available, `best.pt`. Episode videos are saved under `videos/`, and result tables under `results/`. GIF files use the active setting as a prefix, for example `baseline_ppo_only_0.gif`. Hyperparameters such as planner weights (`cost_weight`, `risk_weight`, etc.) can be edited in the YAML file or passed as command-line flags. The `seed` value in `configs/default.yaml` initializes both NumPy and PyTorch and turns on deterministic CuDNN settings so runs are reproducible.
 Use `--plot-dir figures/` to save training plots such as reward curves and heatmaps. The directory is created automatically.
 
 Specify `--initial-beta` and `--final-beta` to linearly decay the curiosity
@@ -188,7 +188,7 @@ docker build -t warzonerobo .
 docker run --rm warzonerobo python train.py --config configs/default.yaml
 ```
 
-Checkpoints are saved under `checkpoints/` and benchmark tables under
+Checkpoints are stored under `checkpoints/<method>/seed<k>/` and benchmark tables under
 `results/` within the repository.
 
 The root `manifest.txt` records the output of `git rev-parse HEAD` so you can
