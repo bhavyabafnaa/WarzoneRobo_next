@@ -1,140 +1,98 @@
 # WarzoneRobo
 
-WarzoneRobo contains research code exploring reinforcement learning (RL) techniques for navigating grid based strategy maps. The project compares vanilla policy gradients with techniques that improve exploration or planning.
+WarzoneRobo explores how modern reinforcement learning (RL) techniques handle
+survival-focused planning on adversarial grid maps. The project combines PPO,
+intrinsic motivation, and symbolic reasoning to study how agents balance
+exploration, risk, and long-horizon credit assignment.
 
-Unlike a typical navigation task with a goal location, the agent's objective here is long-term survival. Each step incurs cost and risk penalties based on the current maps, so policies must balance movement with staying alive.
+## Why this project stands out to research scientists
+- **Methodological depth** – A controlled environment for comparing curiosity
+  modules, planning guidance, and policy optimization under identical
+  conditions.
+- **Analysis-first workflow** – Built-in notebooks, scripts, and logging
+  pipelines accelerate ablation studies, statistical testing, and visualization
+  of learned behaviors.
+- **Reproducibility** – Deterministic seeds, environment manifests, and a
+  Docker image capture the full experimental context for peer review or hiring
+  evaluations.
 
-## Project goals
-* Train an agent using Proximal Policy Optimization (PPO).
-* Augment the agent with Intrinsic Curiosity Module (ICM) and Random Network Distillation (RND) to encourage exploration.
-* Combine RL with a symbolic planner to reduce search space and guide decision making.
+## Core research contributions
+1. **Intrinsic motivation under adversarial pressure** – Demonstrates how ICM
+   and RND bonuses reshape exploration when each step carries survival cost.
+2. **Planner-RL hybridization** – Integrates a symbolic planner that hands off
+   control as learning progresses, highlighting the interaction between model-
+   based priors and policy gradients.
+3. **Dynamic hazard modeling** – Evaluates agents on maps with evolving risk and
+   cost fields to surface brittleness that static benchmarks miss.
 
-## Getting started
-The repository includes a Jupyter notebook named `demo.ipynb` that showcases the environment and training utilities. You can run the notebook interactively or execute its cells as a script.
+## Methodology overview
+- **Environment** – Grid-based survival task with optional dynamic risk and
+  cost schedules, enemy units, and map perturbations. RGB rendering enables
+  qualitative inspection and video exports.
+- **Learning algorithms** – PPO baseline augmented with curiosity (ICM, RND)
+  and planner bonuses that decay over training to test autonomy transfer.
+- **Evaluation** – Benchmarks log success rates, reward curves, and statistical
+  tests against PPO across multiple seeds, producing CSV/HTML/TeX summaries in
+  `results/`.
+
+## Quickstart
+Use the demonstration notebook for rapid exploration or run the training
+pipeline from the command line.
 
 ```bash
 # Install dependencies
 pip install -r requirements.txt
 
-These dependencies are pinned to known-good versions:
-
-- torch==2.8.0
-- numpy==2.3.2
-- matplotlib==3.10.5
-- gym==0.26.2
-- PyYAML==6.0.2
-- seaborn==0.13.2
-- pandas==2.3.1
-- imageio==2.37.0
-- scipy==1.16.1
-- statsmodels==0.14.5
-- pingouin==0.5.5
-- wandb==0.21.1
-- tensorboard==2.20.0
-
-# Launch Jupyter and open the notebook
+# Launch the interactive walkthrough
 jupyter notebook demo.ipynb
-```
 
-Alternatively, you can run the notebook from the command line using `jupyter nbconvert`:
-
-```bash
+# Or execute the notebook headlessly
 jupyter nbconvert --to notebook --execute demo.ipynb --output output.ipynb
 ```
 
-### Command line training
-You can also train the models directly with `train.py`. Hyperparameters can be
-supplied via command line flags or a YAML configuration file:
+### Command-line experimentation
 
 ```bash
+# Minimal PPO run
 python train.py --grid_size 8 --num_episodes 200
-```
 
-or
-
-```bash
+# Configuration-driven experiment
 python train.py --config configs/default.yaml
-```
 
-Separate environment and algorithm YAMLs can also be combined:
-
-```bash
+# Mix-and-match environment and algorithm settings
 python train.py --env-config configs/env_8x8.yaml --algo-config configs/algo/lppo.yaml
-```
-To store generated figures run with `--plot-dir`:
-```bash
+
+# Persist training figures for analysis
 python train.py --config configs/default.yaml --plot-dir figures
 ```
 
-The repository includes `configs/default.yaml` as a starting configuration.
-Duplicate and modify this file to experiment with different training settings.
-Additional environment options can also be specified in the YAML:
+`configs/default.yaml` seeds both NumPy and PyTorch, enabling deterministic
+CuDNN behavior for reproducible hiring packets or academic artifacts. Key
+environment options include:
 
 ```yaml
 grid_size: 8
 num_episodes: 200
 dynamic_risk: true      # enemies increase risk over time
-dynamic_cost: true     # cost near mines decays and rises dynamically
+dynamic_cost: true      # cost near mines decays and rises dynamically
 add_noise: true         # perturb loaded maps on reset
 ```
 
-### Generating benchmark tables
-After training, `train.py` evaluates each agent on the exported benchmark maps.
-The metrics are saved to `results/benchmark_results.csv` and, when the output
-path ends with `.html` or `.tex`, an additional formatted table is produced.
+### Automating sweeps & ablations
+The `scripts/` directory houses deterministic helpers for scaling experiments:
 
 ```bash
-python train.py --num_episodes 200
-# CSV and HTML tables are written to the `results/` folder
+# Run all algorithm variants sequentially
+./scripts/run_all.sh
+
+# Evaluate every checkpoint on held-out benchmark maps
+./scripts/eval_all.sh
+
+# Full suite: algorithms × seeds × ablations with figure/table generation
+./scripts/full_experiment.sh
 ```
 
-Use `--stat-test` to choose the statistical test applied to the aggregated
-results. Available options are `paired`, `welch`, `mannwhitney` and `anova`. The
-default is a paired t-test against the PPO baseline. P-values below `0.05`
-are marked with `*` in the table and those below `0.01` with `**`.
-
-## Components
-* **PPO** – The main reinforcement learning algorithm used to learn policies from environment interaction.
-* **ICM** – Adds intrinsic rewards based on prediction error of the agent's dynamics model to promote exploring unseen states.
-* **RND** – Provides exploration bonuses by comparing a fixed random network with a trained predictor network.
-* **Planner** – A symbolic planner computes heuristic paths that the agent can follow, helping integrate classical planning with learned policies.
-* A decaying planner bonus starts high and linearly decreases each episode so the agent transitions from planner guidance to independent action.
-
-The demo notebook experiments with different combinations of these components to evaluate their effect on success rate and exploration.
-
-## Environment features
-The grid world includes optional *dynamic risk* and *dynamic cost* modes. When enabled, hazard locations and traversal costs change over time so agents cannot memorize a single map. A small `survival_reward` of `0.05` is given each step. Benchmark maps can be exported with `export_benchmark_maps` and loaded later for evaluation. The environment's `render()` method returns RGB frames so that `render_episode_video` can produce GIFs of agent behavior.
-
-## Success metric
-An episode is marked as a **success** only when the agent survives for all
-`max_steps` without hitting a mine or colliding with an enemy. Training logs store
-these binary flags and plots display the running success rate next to the reward
-curve. Result tables also report average success across seeds so improvements in
-reward cannot mask agents that simply die early.
-
-## Running Experiments
-Train all models from a configuration file:
-```bash
-python train.py --config configs/default.yaml
-```
-Checkpoints are saved under `checkpoints/`, episode videos under `videos/`, and result tables under `results/`. GIF files use the active setting as a prefix, for example `baseline_ppo_only_0.gif`. Hyperparameters such as planner weights (`cost_weight`, `risk_weight`, etc.) can be edited in the YAML file or passed as command-line flags. The `seed` value in `configs/default.yaml` initializes both NumPy and PyTorch and turns on deterministic CuDNN settings so runs are reproducible.
-Use `--plot-dir figures/` to save training plots such as reward curves and heatmaps. The directory is created automatically.
-
-Specify `--initial-beta` and `--final-beta` to linearly decay the curiosity
-weight. The value decreases until two thirds of the episodes have completed,
-then stays at the final level. For example:
-
-```bash
-python train.py --initial-beta 0.2 --final-beta 0.05
-```
-
-To measure the effect of curiosity you can disable the ICM module:
-
-```bash
-python train.py --initial-beta 0.2 --final-beta 0.05 --disable_icm
-```
-
-To repeat an experiment with multiple random seeds you can loop over the `--seed` argument:
+Loop over seeds to report confidence intervals:
 
 ```bash
 for s in 0 1 2 3 4; do
@@ -142,44 +100,36 @@ for s in 0 1 2 3 4; do
 done
 ```
 
-### Batch scripts
-The `scripts/` directory contains helper scripts to automate common workflows.
-Run all algorithm configurations sequentially with:
+Curiosity-specific controls let you probe causality:
 
 ```bash
-./scripts/run_all.sh
+python train.py --initial-beta 0.2 --final-beta 0.05
+python train.py --initial-beta 0.2 --final-beta 0.05 --disable_icm
 ```
 
-After training finishes, evaluate every produced checkpoint on the benchmark
-maps in a consistent order with:
+## Evaluation assets
+- **Tables** – `results/benchmark_results.csv` plus optional HTML/TeX exports
+  with significance stars (paired, Welch, Mann–Whitney, or ANOVA tests via
+  `--stat-test`).
+- **Figures** – Reward curves, state visitation heatmaps, and curiosity decay
+  diagnostics in `figures/` when `--plot-dir` is specified.
+- **Videos** – Episode rollouts stored under `videos/` for qualitative review,
+  useful in interview packets to showcase behavior shifts.
 
-```bash
-./scripts/eval_all.sh
-```
+## Testing & quality gates
+Run the targeted unit tests before sharing results:
 
-Both scripts iterate deterministically so repeated invocations yield comparable
-results.
-
-Run the entire experiment suite with all algorithms, five random seeds and
-ablation settings by calling:
-
-```bash
-./scripts/full_experiment.sh
-```
-
-The script logs success or failure for the training run and, when successful,
-invokes evaluation and summary steps such as figure and table generation.
-
-## Running Tests
-Execute the unit tests with:
 ```bash
 pytest -q
 ```
-The full suite runs in well under a minute on a CPU.
 
-## Reproducing Our Results
-The provided Dockerfile allows you to recreate the exact environment used for
-our experiments. Run the following commands:
+The suite completes in under a minute on CPU, making it practical for iterative
+development or code review in hiring scenarios.
+
+## Reproducibility checklist
+1. Clone the repository and build the Docker image.
+2. Launch experiments inside the container.
+3. Archive `manifest.txt`, `configs/`, and generated artifacts for auditability.
 
 ```bash
 git clone <repo-url>
@@ -188,8 +138,20 @@ docker build -t warzonerobo .
 docker run --rm warzonerobo python train.py --config configs/default.yaml
 ```
 
-Checkpoints are saved under `checkpoints/` and benchmark tables under
-`results/` within the repository.
+Checkpoints appear under `checkpoints/` and benchmark tables under `results/`.
+`manifest.txt` stores the commit hash used to generate the release.
 
-The root `manifest.txt` records the output of `git rev-parse HEAD` so you can
-confirm the exact code revision used for these experiments.
+## Project structure
+- `src/` – Environment, agent implementations, planners, and training loops.
+- `configs/` – Canonical experiment definitions with environment and algorithm
+  splits for ablation studies.
+- `scripts/` – End-to-end automation for sweeps, evaluation, and reporting.
+- `figures/`, `videos/`, `results/` – Generated analysis artifacts ready for
+  inclusion in research dossiers or candidate portfolios.
+- `demo.ipynb` – Guided tour of the environment and modeling components.
+
+## Looking ahead
+Potential next steps for collaborators or interview follow-ups include scaling
+to continuous control maps, integrating model-based rollouts, and evaluating
+transfer to procedurally generated terrains. These directions highlight the
+project's flexibility for future research agendas.
